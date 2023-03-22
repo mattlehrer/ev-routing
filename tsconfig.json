@@ -5,6 +5,7 @@
 		"checkJs": true,
 		"esModuleInterop": true,
 		"forceConsistentCasingInFileNames": true,
+		"plugins": [{ "name": "vite-plugin-iso-import" }],
 		"resolveJsonModule": true,
 		"skipLibCheck": true,
 		"sourceMap": true,

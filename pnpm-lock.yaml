@@ -10,6 +10,7 @@ specifiers:
   eslint: ^8.36.0
   eslint-config-prettier: ^8.8.0
   eslint-plugin-svelte3: ^4.0.0
+  leaflet: ^1.9.3
   postcss: ^8.4.21
   prettier: ^2.8.6
   prettier-plugin-organize-imports: ^3.2.2
@@ -17,10 +18,12 @@ specifiers:
   prettier-plugin-tailwindcss: ^0.2.5
   svelte: ^3.57.0
   svelte-check: ^3.1.4
+  svelte-leafletjs: ^0.10.0
   tailwindcss: ^3.2.7
   tslib: ^2.5.0
   typescript: ^5.0.2
   vite: ^4.2.1
+  vite-plugin-iso-import: ^1.0.0
   vitest: ^0.25.8
 
 devDependencies:
@@ -33,6 +36,7 @@ devDependencies:
   eslint: 8.36.0
   eslint-config-prettier: 8.8.0_eslint@8.36.0
   eslint-plugin-svelte3: 4.0.0_wzem237sbvnwe7n34ytc5phasy
+  leaflet: 1.9.3
   postcss: 8.4.21
   prettier: 2.8.6
   prettier-plugin-organize-imports: 3.2.2_tcllvk4eo3otqqvuorc2duftpy
@@ -40,10 +44,12 @@ devDependencies:
   prettier-plugin-tailwindcss: 0.2.5_sp5cynyfbb2k2g2hfv4h2urwh4
   svelte: 3.57.0
   svelte-check: 3.1.4_sd5d5bwhwct4qrvp7ra4wv5wou
+  svelte-leafletjs: 0.10.0
   tailwindcss: 3.2.7_postcss@8.4.21
   tslib: 2.5.0
   typescript: 5.0.2
   vite: 4.2.1
+  vite-plugin-iso-import: 1.0.0_vite@4.2.1
   vitest: 0.25.8
 
 packages:
@@ -882,6 +888,10 @@ packages:
     resolution: {integrity: sha512-l/eowQqTnrq3gu+WSrdfkhfNHnPgYqlKAwxz7MTOj6mom19vpEDHNXl6dxDxyTiYuhemydprKr/HCrHfgk+OfQ==}
     dev: true
 
+  /es-module-lexer/1.2.0:
+    resolution: {integrity: sha512-2BMfqBDeVCcOlLaL1ZAfp+D868SczNpKArrTM3dhpd7dK/OVlogzY15qpUngt+LMTq5UC/csb9vVQAgupucSbA==}
+    dev: true
+
   /es6-promise/3.3.1:
     resolution: {integrity: sha512-SOp9Phqvqn7jtEUxPWdWfWoLmyt2VaJ6MpvP9Comy1MceMXqE6bxvaTu4iaxpYYPzhny28Lc+M87/c2cPK6lDg==}
     dev: true
@@ -1310,6 +1320,10 @@ packages:
   /kleur/4.1.5:
     resolution: {integrity: sha512-o+NO+8WrRiQEE4/7nwRJhN1HWpVmJm511pBHUxPLtp0BUISzlBplORYSmTclCnJvQq2tKu/sgl3xVpkc7ZWuQQ==}
     engines: {node: '>=6'}
+    dev: true
+
+  /leaflet/1.9.3:
+    resolution: {integrity: sha512-iB2cR9vAkDOu5l3HAay2obcUHZ7xwUBBjph8+PGtmW/2lYhbLizWtG7nTeYht36WfOslixQF9D/uSIzhZgGMfQ==}
     dev: true
 
   /levn/0.4.1:
@@ -1941,6 +1955,12 @@ packages:
       svelte: 3.57.0
     dev: true
 
+  /svelte-leafletjs/0.10.0:
+    resolution: {integrity: sha512-xKIwHZAsdI2EoYvSEp4IDAeLFTaWx/e+gPs7G3Z6MLHNcFieDRKjVHgLt9ilM+xpw1A8Cx0qbtwrfdCYwWfG8g==}
+    dependencies:
+      leaflet: 1.9.3
+    dev: true
+
   /svelte-preprocess/5.0.3_ybrbwhhu54cxvzb5hyvixtn33q:
     resolution: {integrity: sha512-GrHF1rusdJVbOZOwgPWtpqmaexkydznKzy5qIC2FabgpFyKN57bjMUUUqPRfbBXK5igiEWn1uO/DXsa2vJ5VHA==}
     engines: {node: '>= 14.10.0'}
@@ -2138,6 +2158,16 @@ packages:
 
   /util-deprecate/1.0.2:
     resolution: {integrity: sha512-EPD5q1uXyFxJpCrLnCc1nHnq3gOa6DZBocAIiI2TaSCA7VCJ1UJDMagCzIkXNsUYfD1daK//LTEQ8xiIbrHtcw==}
+    dev: true
+
+  /vite-plugin-iso-import/1.0.0_vite@4.2.1:
+    resolution: {integrity: sha512-DqhCElHfkbkqLXtm0UMiAXqh9FdqRHegHpawXtp5LWHjGsdAqYPhmUGBTKFuTRwPSNFYCpyjHRsm7lvM2dskGw==}
+    peerDependencies:
+      vite: ^2.0.0 || ^3.0.0 || ^4.0.0
+    dependencies:
+      es-module-lexer: 1.2.0
+      magic-string: 0.27.0
+      vite: 4.2.1
     dev: true
 
   /vite/4.2.1:
