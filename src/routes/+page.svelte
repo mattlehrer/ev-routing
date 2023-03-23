@@ -1,7 +1,7 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
 	import { PUBLIC_THUNDERFOREST_API_KEY } from '$env/static/public';
-	import { LeafletMap, Marker, TileLayer } from 'svelte-leafletjs?client';
+	import { GeoJSON, LeafletMap, Marker, TileLayer } from 'svelte-leafletjs?client';
 	import type { Map } from 'leaflet';
 	import 'leaflet/dist/leaflet.css';
 	import { onMount } from 'svelte';
@@ -10,6 +10,7 @@
 	let destination: string;
 	let originLatLng: [number, number];
 	let destinationLatLng: [number, number];
+	let geoJsonData: any;
 
 	async function handleClick(e: any) {
 		console.log(e.detail.latlng);
@@ -30,13 +31,16 @@
 				}),
 			});
 			const data = await res.json();
+			geoJsonData = data.geometry;
+			// console.log(geoJsonData);
 			console.log(data);
+			// geoJsonData = data;
 		}
 	}
 
 	const mapOptions = {
-		center: [55.55498175819643, 13.108723370558785],
-		zoom: 11,
+		center: [58.83, 14.8],
+		zoom: 6,
 	};
 	const tileUrl = `https://tile.thunderforest.com/atlas/{z}/{x}/{y}.png?apikey=${PUBLIC_THUNDERFOREST_API_KEY}`;
 	// 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
@@ -51,6 +55,7 @@
 
 	let leafletMap: { getMap(): Map };
 	let L: Map;
+
 	onMount(() => {
 		// if (leafletMap) leafletMap?.controls.zoom.setPosition('topright');
 		L = leafletMap.getMap();
@@ -77,6 +82,9 @@
 				{/if}
 				{#if destination}
 					<Marker latLng={destinationLatLng} />
+				{/if}
+				{#if geoJsonData}
+					<GeoJSON data={geoJsonData} />
 				{/if}
 			</LeafletMap>
 		{/if}

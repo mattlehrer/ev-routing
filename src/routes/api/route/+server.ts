@@ -2,7 +2,7 @@ import OSRM from '@project-osrm/osrm';
 import { json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 
-const osrm = new OSRM('osrmdata/sweden-latest.osrm');
+const osrm = new OSRM({ path: 'osrmdata/sweden-latest.osrm', algorithm: 'MLD' });
 
 export const POST = (async ({ request }) => {
 	const data = await request.json();
@@ -17,6 +17,7 @@ export const POST = (async ({ request }) => {
 					[dlon, dlat],
 				],
 				steps: true,
+				overview: 'full',
 				annotations: true,
 				geometries: 'geojson',
 			},
