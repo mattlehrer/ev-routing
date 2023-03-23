@@ -6,6 +6,18 @@
 	import 'leaflet/dist/leaflet.css';
 	import { onMount } from 'svelte';
 
+	let origin: string;
+	let destination: string;
+
+	function handleClick(e: any) {
+		console.log(e.detail.latlng);
+		if (!origin || (origin && destination)) {
+			origin = e.detail.latlng;
+		} else {
+			destination = e.detail.latlng;
+		}
+	}
+
 	const mapOptions = {
 		center: [55.55498175819643, 13.108723370558785],
 		zoom: 11,
@@ -34,10 +46,48 @@
 	<title>EV Routing with Charging Prices</title>
 </svelte:head>
 
-<div id="map" style="height: 100vh;">
-	{#if browser}
-		<LeafletMap bind:this={leafletMap} options={mapOptions}>
-			<TileLayer url={tileUrl} options={tileLayerOptions} />
-		</LeafletMap>
-	{/if}
-</div>
+<main class="relative">
+	<div id="map" style="height: 100vh; position: relative;" class="z-0">
+		{#if browser}
+			<LeafletMap
+				bind:this={leafletMap}
+				options={mapOptions}
+				events={['click']}
+				on:click={handleClick}
+			>
+				<TileLayer url={tileUrl} options={tileLayerOptions} />
+			</LeafletMap>
+		{/if}
+	</div>
+
+	<div id="route" class="absolute top-0 left-0 z-10 w-80 p-3">
+		<div class="isolate -space-y-px rounded-md shadow-sm">
+			<div
+				class="relative rounded-md rounded-b-none bg-white px-3 pt-2.5 pb-1.5 ring-1 ring-inset ring-gray-300 focus-within:z-10 focus-within:ring-2 focus-within:ring-indigo-600 "
+			>
+				<label for="origin" class="block text-xs font-medium text-gray-900">Origin</label>
+				<input
+					type="text"
+					name="origin"
+					id="origin"
+					bind:value={origin}
+					class="block w-full border-0 p-0 text-gray-900 placeholder:text-gray-400 focus:ring-0 sm:text-sm sm:leading-6"
+					placeholder="Origin"
+				/>
+			</div>
+			<div
+				class="relative rounded-md rounded-t-none bg-white px-3 pt-2.5 pb-1.5 ring-1 ring-inset ring-gray-300 focus-within:z-10 focus-within:ring-2 focus-within:ring-indigo-600"
+			>
+				<label for="destination" class="block text-xs font-medium text-gray-900">Destination</label>
+				<input
+					type="text"
+					name="destination"
+					id="destination"
+					bind:value={destination}
+					class="block w-full border-0 p-0 text-gray-900 placeholder:text-gray-400 focus:ring-0 sm:text-sm sm:leading-6"
+					placeholder="Destination"
+				/>
+			</div>
+		</div>
+	</div>
+</main>

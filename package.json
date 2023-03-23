@@ -40,5 +40,8 @@
 		"vite-plugin-iso-import": "^1.0.0",
 		"vitest": "^0.25.8"
 	},
-	"type": "module"
+	"type": "module",
+	"dependencies": {
+		"@tailwindcss/forms": "^0.5.3"
+	}
 }
