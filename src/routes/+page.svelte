@@ -11,7 +11,7 @@
 	let originLatLng: [number, number];
 	let destinationLatLng: [number, number];
 
-	function handleClick(e: any) {
+	async function handleClick(e: any) {
 		console.log(e.detail.latlng);
 		if (!origin) {
 			origin = [e.detail.latlng.lat, e.detail.latlng.lng].join(',');
@@ -19,6 +19,18 @@
 		} else {
 			destinationLatLng = [e.detail.latlng.lat, e.detail.latlng.lng];
 			destination = [e.detail.latlng.lat, e.detail.latlng.lng].join(',');
+			const res = await fetch('/api/route', {
+				method: 'POST',
+				headers: {
+					'Content-Type': 'application/json',
+				},
+				body: JSON.stringify({
+					origin: originLatLng,
+					destination: destinationLatLng,
+				}),
+			});
+			const data = await res.json();
+			console.log(data);
 		}
 	}
 
