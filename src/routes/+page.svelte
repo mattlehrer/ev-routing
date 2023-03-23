@@ -1,20 +1,24 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
 	import { PUBLIC_THUNDERFOREST_API_KEY } from '$env/static/public';
-	import { LeafletMap, TileLayer } from 'svelte-leafletjs?client';
+	import { LeafletMap, Marker, TileLayer } from 'svelte-leafletjs?client';
 	import type { Map } from 'leaflet';
 	import 'leaflet/dist/leaflet.css';
 	import { onMount } from 'svelte';
 
 	let origin: string;
 	let destination: string;
+	let originLatLng: [number, number];
+	let destinationLatLng: [number, number];
 
 	function handleClick(e: any) {
 		console.log(e.detail.latlng);
-		if (!origin || (origin && destination)) {
-			origin = e.detail.latlng;
+		if (!origin) {
+			origin = [e.detail.latlng.lat, e.detail.latlng.lng].join(',');
+			originLatLng = [e.detail.latlng.lat, e.detail.latlng.lng];
 		} else {
-			destination = e.detail.latlng;
+			destinationLatLng = [e.detail.latlng.lat, e.detail.latlng.lng];
+			destination = [e.detail.latlng.lat, e.detail.latlng.lng].join(',');
 		}
 	}
 
@@ -56,6 +60,12 @@
 				on:click={handleClick}
 			>
 				<TileLayer url={tileUrl} options={tileLayerOptions} />
+				{#if origin}
+					<Marker latLng={originLatLng} />
+				{/if}
+				{#if destination}
+					<Marker latLng={destinationLatLng} />
+				{/if}
 			</LeafletMap>
 		{/if}
 	</div>
