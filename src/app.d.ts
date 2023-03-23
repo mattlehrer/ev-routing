@@ -9,4 +9,12 @@ declare global {
 	}
 }
 
+declare module 'svelte-leafletjs?client' {
+	import * as all from 'svelte-leafletjs';
+	export = all;
+}
+
+declare module '*?client';
+declare module '*?server';
+
 export {};
