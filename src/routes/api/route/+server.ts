@@ -23,10 +23,10 @@ export const POST = (async ({ request }) => {
 			},
 			(err, result) => {
 				if (err) {
-					console.log(err);
+					console.error(err);
 					reject(err);
 				} else {
-					console.log(JSON.stringify(result, null, 2));
+					// console.log(JSON.stringify(result, null, 2));
 					resolve(json(result?.routes[0]));
 				}
 			},
