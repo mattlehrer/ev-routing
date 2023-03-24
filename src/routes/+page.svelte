@@ -1,8 +1,8 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
 	import { PUBLIC_THUNDERFOREST_API_KEY } from '$env/static/public';
-	import { GeoJSON, LeafletMap, Marker, TileLayer } from 'svelte-leafletjs?client';
-	import type { Map } from 'leaflet';
+	import { GeoJSON, LeafletMap, Marker, DivIcon, TileLayer } from 'svelte-leafletjs?client';
+	import type { GeoJSONOptions, LatLng, Map } from 'leaflet';
 	import 'leaflet/dist/leaflet.css';
 	import { onMount } from 'svelte';
 
@@ -15,11 +15,11 @@
 	async function handleClick(e: any) {
 		console.log(e.detail.latlng);
 		if (!origin) {
-			origin = [e.detail.latlng.lat, e.detail.latlng.lng].join(',');
+			origin = [e.detail.latlng.lat, e.detail.latlng.lng].join(', ');
 			originLatLng = [e.detail.latlng.lat, e.detail.latlng.lng];
 		} else {
 			destinationLatLng = [e.detail.latlng.lat, e.detail.latlng.lng];
-			destination = [e.detail.latlng.lat, e.detail.latlng.lng].join(',');
+			destination = [e.detail.latlng.lat, e.detail.latlng.lng].join(', ');
 			const res = await fetch('/api/route', {
 				method: 'POST',
 				headers: {
@@ -42,8 +42,9 @@
 		center: [58.83, 14.8],
 		zoom: 6,
 	};
-	const tileUrl = `https://tile.thunderforest.com/atlas/{z}/{x}/{y}.png?apikey=${PUBLIC_THUNDERFOREST_API_KEY}`;
-	// 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+	// const tileUrl = `https://tile.thunderforest.com/landscape/{z}/{x}/{y}.png?apikey=${PUBLIC_THUNDERFOREST_API_KEY}`; // shows some elevation details
+	// const tileUrl = `https://tile.thunderforest.com/atlas/{z}/{x}/{y}.png?apikey=${PUBLIC_THUNDERFOREST_API_KEY}`;
+	const tileUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
 	const tileLayerOptions = {
 		minZoom: 0,
 		maxZoom: 20,
@@ -61,6 +62,29 @@
 		L = leafletMap.getMap();
 		L.zoomControl.setPosition('topright');
 	});
+
+	let color = '#0000ff';
+	const geoJsonOptions = {
+		style: function (geoJsonFeature: GeoJSONOptions) {
+			console.log('style', geoJsonFeature);
+			return { color };
+		},
+		onEachFeature: function (feature: any, layer: any) {
+			console.log('onEachFeature', feature, layer);
+		},
+	};
+
+	let pointer: [number, number] | undefined = undefined;
+
+	const handleMouseOver = (e: CustomEvent) => {
+		pointer = [e.detail.latlng.lat, e.detail.latlng.lng];
+	};
+
+	const handleMouseOut = (e: CustomEvent) => {
+		setTimeout(() => {
+			pointer = undefined;
+		}, 1000);
+	};
 </script>
 
 <svelte:head>
@@ -84,7 +108,20 @@
 					<Marker latLng={destinationLatLng} />
 				{/if}
 				{#if geoJsonData}
-					<GeoJSON data={geoJsonData} />
+					<GeoJSON
+						data={geoJsonData}
+						options={geoJsonOptions}
+						events={['mouseover', 'mouseout']}
+						on:mouseover={handleMouseOver}
+						on:mouseout={handleMouseOut}
+					/>
+					{#if pointer}
+						<Marker latLng={pointer}>
+							<DivIcon>
+								<div class="-m-10 h-10 w-10 bg-white">Hello</div>
+							</DivIcon>
+						</Marker>
+					{/if}
 				{/if}
 			</LeafletMap>
 		{/if}
