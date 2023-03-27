@@ -41,6 +41,7 @@
 	const mapOptions = {
 		center: [58.83, 14.8],
 		zoom: 6,
+		// preferCanvas: true,
 	};
 	// const tileUrl = `https://tile.thunderforest.com/landscape/{z}/{x}/{y}.png?apikey=${PUBLIC_THUNDERFOREST_API_KEY}`; // shows some elevation details
 	// const tileUrl = `https://tile.thunderforest.com/atlas/{z}/{x}/{y}.png?apikey=${PUBLIC_THUNDERFOREST_API_KEY}`;
