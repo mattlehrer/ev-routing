@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { f_ad, f_hc, f_la, f_omega_a, f_rr } from './battery_sim';
+import { f_ad, f_hc, f_la, f_omega_a, f_rr, f_te, p_te } from './traction_at_wheels';
 
 describe('traction power at wheels', () => {
 	describe('the force of aerodynamic drag', () => {
@@ -100,6 +100,66 @@ describe('traction power at wheels', () => {
 					a: 0.02,
 				}),
 			).toBe(1.5);
+		});
+	});
+
+	describe('the total tractive effort at the wheels', () => {
+		it('is ~147 with default params for all sub functions', () => {
+			expect(
+				f_te({
+					f_ad: f_ad({}),
+					f_rr: f_rr({}),
+					f_hc: f_hc({}),
+					f_la: f_la({}),
+					f_omega_a: f_omega_a({}),
+				}),
+			).toMatchInlineSnapshot('147.15');
+		});
+
+		it('is ~147 with default params for all sub functions', () => {
+			expect(
+				f_te({
+					f_ad: f_ad({}),
+					f_rr: f_rr({}),
+					f_hc: f_hc({}),
+					f_la: f_la({}),
+					f_omega_a: f_omega_a({}),
+				}),
+			).toMatchInlineSnapshot('147.15');
+		});
+	});
+
+	describe('the traction power', () => {
+		it('is 0 at 0 velocity', () => {
+			const f = f_te({
+				f_ad: f_ad({}),
+				f_rr: f_rr({}),
+				f_hc: f_hc({}),
+				f_la: f_la({}),
+				f_omega_a: f_omega_a({}),
+			});
+			expect(
+				p_te({
+					f_te: f,
+					u: 0,
+				}),
+			).toBe(0);
+		});
+
+		it('is ~147 at 1 m/s velocity with default params for all sub functions', () => {
+			const f = f_te({
+				f_ad: f_ad({}),
+				f_rr: f_rr({}),
+				f_hc: f_hc({}),
+				f_la: f_la({}),
+				f_omega_a: f_omega_a({}),
+			});
+			expect(
+				p_te({
+					f_te: f,
+					u: 1,
+				}),
+			).toMatchInlineSnapshot('147.15');
 		});
 	});
 });
