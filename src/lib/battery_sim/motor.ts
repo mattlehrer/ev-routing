@@ -122,3 +122,32 @@ export const normfactor = (p_motorrated: number): number => {
 	if (p_motorrated <= 160) return 0.998;
 	return 1.0;
 };
+
+/**
+ * calculates the input power of the motor in W
+ * in other words, how much power is drawn from the battery
+ * to reach this level of motor output power when in motor mode, or
+ * how much power is delivered to the battery when in generator mode
+ * @param p_motorout current mechanical power of the motor in W
+ * @param efficiency the load efficiency of the motor
+ * @param normfactor the efficiency normalization factor
+ * @param p_te traction power in W
+ * @returns the input power of the motor in W
+ */
+export const p_motorin = ({
+	p_motorout,
+	efficiency,
+	normfactor,
+	p_te,
+}: {
+	p_motorout: number;
+	efficiency: number;
+	normfactor: number;
+	p_te: number;
+}): number => {
+	if (p_te <= 0) {
+		return p_motorout * efficiency * normfactor;
+	} else {
+		return p_motorout / (efficiency * normfactor);
+	}
+};

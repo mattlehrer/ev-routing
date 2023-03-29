@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { efficiency, normfactor } from './motor';
+import { efficiency, normfactor, p_motorin } from './motor';
 
 describe('motor', () => {
 	describe('the efficiency curve', () => {
@@ -135,6 +135,52 @@ describe('motor', () => {
 
 		it('is 0.998 for a 150kW motor', () => {
 			expect(normfactor(150)).toBe(0.998);
+		});
+	});
+
+	describe('the input power of the motor in W', () => {
+		it('is 0 for 0kW motor at 100% efficiency', () => {
+			expect(
+				p_motorin({
+					p_motorout: 0,
+					efficiency: 1,
+					normfactor: 0,
+					p_te: 0,
+				}),
+			).toBe(0);
+		});
+
+		it('is ~55 for 50W output at 92% efficiency, .99 normfactor', () => {
+			expect(
+				p_motorin({
+					p_motorout: 50,
+					efficiency: 0.92,
+					normfactor: 0.99,
+					p_te: 100,
+				}),
+			).toMatchInlineSnapshot('54.89679402722881');
+		});
+
+		it('is ~53 for 50W output at 94% efficiency, 1.0 normfactor', () => {
+			expect(
+				p_motorin({
+					p_motorout: 50,
+					efficiency: 0.94,
+					normfactor: 1.0,
+					p_te: 100,
+				}),
+			).toMatchInlineSnapshot('53.19148936170213');
+		});
+
+		it('is 47 for 50W input at 94% efficiency, 1.0 normfactor', () => {
+			expect(
+				p_motorin({
+					p_motorout: 50,
+					efficiency: 0.94,
+					normfactor: 1.0,
+					p_te: -100,
+				}),
+			).toBe(47);
 		});
 	});
 });
