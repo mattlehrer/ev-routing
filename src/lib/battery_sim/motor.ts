@@ -193,6 +193,22 @@ export const regen_factor = ({
 };
 
 /**
+ * calculates the total battery change in power in W
+ * @param p_motor_in the input power of the motor in W
+ * @param p_ac power draw by the accessories in W
+ * @returns the total battery change in power in W
+ */
+export const p_battery_out = ({
+	p_motor_in,
+	p_ac,
+}: {
+	p_motor_in: number;
+	p_ac: number;
+}): number => {
+	return p_motor_in + p_ac;
+};
+
+/**
  * calculates the total power of the motor in W
  * @param p_battery_out current power of the battery in W
  * @param rte the round trip efficiency factor for the battery
