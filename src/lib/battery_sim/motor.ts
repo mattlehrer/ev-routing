@@ -129,6 +129,7 @@ export const normfactor = (p_motorrated: number): number => {
  * to reach this level of motor output power when in motor mode, or
  * how much power is delivered to the battery when in generator mode
  * @param p_motorout current mechanical power of the motor in W
+ * @param regen_factor the speed-dependent regeneration factor
  * @param efficiency the load efficiency of the motor
  * @param normfactor the efficiency normalization factor
  * @param p_te traction power in W
@@ -136,17 +137,22 @@ export const normfactor = (p_motorrated: number): number => {
  */
 export const p_motorin = ({
 	p_motorout,
+	regen_factor,
 	efficiency,
 	normfactor,
 	p_te,
 }: {
 	p_motorout: number;
+	regen_factor: number;
 	efficiency: number;
 	normfactor: number;
 	p_te: number;
 }): number => {
+	if (regen_factor < 0 || regen_factor > 1) throw new Error('regen_factor must be between 0 and 1');
+	if (efficiency < 0 || efficiency > 1) throw new Error('efficiency must be between 0 and 1');
+
 	if (p_te <= 0) {
-		return p_motorout * efficiency * normfactor;
+		return p_motorout * regen_factor * efficiency * normfactor;
 	} else {
 		return p_motorout / (efficiency * normfactor);
 	}

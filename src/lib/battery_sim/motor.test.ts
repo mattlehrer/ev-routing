@@ -143,6 +143,7 @@ describe('motor', () => {
 			expect(
 				p_motorin({
 					p_motorout: 0,
+					regen_factor: 0,
 					efficiency: 1,
 					normfactor: 0,
 					p_te: 0,
@@ -154,6 +155,7 @@ describe('motor', () => {
 			expect(
 				p_motorin({
 					p_motorout: 50,
+					regen_factor: 0,
 					efficiency: 0.92,
 					normfactor: 0.99,
 					p_te: 100,
@@ -161,10 +163,31 @@ describe('motor', () => {
 			).toMatchInlineSnapshot('54.89679402722881');
 		});
 
+		it('does not change with different regen_factor in motor mode', () => {
+			const a = p_motorin({
+				p_motorout: 50,
+				regen_factor: 0.5,
+				efficiency: 0.92,
+				normfactor: 0.99,
+				p_te: 100,
+			});
+
+			const b = p_motorin({
+				p_motorout: 50,
+				regen_factor: 0.75,
+				efficiency: 0.92,
+				normfactor: 0.99,
+				p_te: 100,
+			});
+
+			expect(a === b).toBeTruthy();
+		});
+
 		it('is ~53 for 50W output at 94% efficiency, 1.0 normfactor', () => {
 			expect(
 				p_motorin({
 					p_motorout: 50,
+					regen_factor: 0,
 					efficiency: 0.94,
 					normfactor: 1.0,
 					p_te: 100,
@@ -172,15 +195,72 @@ describe('motor', () => {
 			).toMatchInlineSnapshot('53.19148936170213');
 		});
 
-		it('is 47 for 50W input at 94% efficiency, 1.0 normfactor', () => {
+		it('is 47 for 50W input at 94% efficiency, 1.0 normfactor, 1.0 regen_factor', () => {
 			expect(
 				p_motorin({
 					p_motorout: 50,
+					regen_factor: 1.0,
 					efficiency: 0.94,
 					normfactor: 1.0,
 					p_te: -100,
 				}),
 			).toBe(47);
+		});
+
+		it('increases with higher regen_factors in generator mode', () => {
+			const a = p_motorin({
+				p_motorout: 50,
+				regen_factor: 0.5,
+				efficiency: 0.92,
+				normfactor: 0.99,
+				p_te: -100,
+			});
+
+			const b = p_motorin({
+				p_motorout: 50,
+				regen_factor: 0.75,
+				efficiency: 0.92,
+				normfactor: 0.99,
+				p_te: -100,
+			});
+
+			expect(a < b).toBeTruthy();
+		});
+
+		it('is ~37.6 for 50W input at 94% efficiency, 1.0 normfactor, 1.0 regen_factor', () => {
+			expect(
+				p_motorin({
+					p_motorout: 50,
+					regen_factor: 0.8,
+					efficiency: 0.94,
+					normfactor: 1.0,
+					p_te: -100,
+				}),
+			).toMatchInlineSnapshot('37.599999999999994');
+		});
+
+		it('throws if regen_factor is not between 0 and 1', () => {
+			expect(() =>
+				p_motorin({
+					p_motorout: 50,
+					regen_factor: 1.1,
+					efficiency: 0.94,
+					normfactor: 1.0,
+					p_te: -100,
+				}),
+			).toThrow();
+		});
+
+		it('throws if efficiency is not between 0 and 1', () => {
+			expect(() =>
+				p_motorin({
+					p_motorout: 50,
+					regen_factor: 1.0,
+					efficiency: 1.1,
+					normfactor: 1.0,
+					p_te: -100,
+				}),
+			).toThrow();
 		});
 	});
 });
