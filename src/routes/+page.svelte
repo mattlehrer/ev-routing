@@ -4,13 +4,14 @@
 	import { GeoJSON, LeafletMap, Marker, DivIcon, TileLayer } from 'svelte-leafletjs?client';
 	import type { GeoJSONOptions, LatLng, Map } from 'leaflet';
 	import 'leaflet/dist/leaflet.css';
+	import humanizeDuration from 'humanize-duration';
 	import { onMount } from 'svelte';
 
 	let origin: string | undefined;
 	let destination: string | undefined;
 	let originLatLng: [number, number];
 	let destinationLatLng: [number, number];
-	let geoJsonData: any;
+	let routeData: any;
 
 	function formatLatLng(latlng: LatLng) {
 		return [
@@ -19,8 +20,21 @@
 		].join(', ');
 	}
 
+	function formatDistance(distance: number) {
+		return new Intl.NumberFormat(undefined, {
+			style: 'unit',
+			unit: 'kilometer',
+			unitDisplay: 'short',
+			maximumFractionDigits: 1,
+		}).format(distance / 1000);
+	}
+
+	function formatDuration(duration: number) {
+		return humanizeDuration(duration * 1000, { units: ['h', 'm'], round: true });
+	}
+
 	async function handleClick(e: any) {
-		console.log(e.detail.latlng);
+		// console.log(e.detail.latlng);
 		if (!origin) {
 			origin = formatLatLng(e.detail.latlng);
 			originLatLng = [e.detail.latlng.lat, e.detail.latlng.lng];
@@ -44,10 +58,9 @@
 			}),
 		});
 		const data = await res.json();
-		geoJsonData = data.geometry;
-		// console.log(geoJsonData);
+		routeData = data;
+		// console.log(routeData);
 		console.log(data);
-		// geoJsonData = data;
 	}
 
 	const mapOptions = {
@@ -56,15 +69,15 @@
 		// preferCanvas: true,
 	};
 	// const tileUrl = `https://tile.thunderforest.com/landscape/{z}/{x}/{y}.png?apikey=${PUBLIC_THUNDERFOREST_API_KEY}`; // shows some elevation details
-	const tileUrl = `https://tile.thunderforest.com/atlas/{z}/{x}/{y}.png?apikey=${PUBLIC_THUNDERFOREST_API_KEY}`;
-	// const tileUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+	// const tileUrl = `https://tile.thunderforest.com/atlas/{z}/{x}/{y}.png?apikey=${PUBLIC_THUNDERFOREST_API_KEY}`;
+	const tileUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
 	const tileLayerOptions = {
 		minZoom: 0,
 		maxZoom: 20,
 		maxNativeZoom: 19,
-		attribution:
-			'Maps &copy; <a href="https://www.thunderforest.com">Thunderforest</a>, Data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>',
-		// attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+		// attribution:
+		// 	'Maps &copy; <a href="https://www.thunderforest.com">Thunderforest</a>, Data &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap contributors</a>',
+		attribution: '&copy; <a href="http://www.openstreetmap.org/copyright">OpenStreetMap</a>',
 	};
 
 	let leafletMap: { getMap(): Map };
@@ -79,11 +92,11 @@
 	let color = '#0000ff';
 	const geoJsonOptions = {
 		style: function (geoJsonFeature: GeoJSONOptions) {
-			console.log('style', geoJsonFeature);
+			// console.log('style', geoJsonFeature);
 			return { color };
 		},
 		onEachFeature: function (feature: any, layer: any) {
-			console.log('onEachFeature', feature, layer);
+			// console.log('onEachFeature', feature, layer);
 		},
 	};
 
@@ -98,6 +111,17 @@
 			pointer = undefined;
 		}, 1000);
 	};
+
+	const originIcon = `
+		<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="absolute w-10 h-10 -left-5 -top-10 text-green-600">
+	  <path fill-rule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 00-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 002.682 2.282 16.975 16.975 0 001.145.742zM12 13.5a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />
+	</svg>
+	`;
+	const destinationIcon = `
+		<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="absolute w-10 h-10 -left-5 -top-10 text-red-600">
+	  <path fill-rule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 00-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 002.682 2.282 16.975 16.975 0 001.145.742zM12 13.5a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />
+	</svg>
+	`;
 </script>
 
 <svelte:head>
@@ -115,14 +139,48 @@
 			>
 				<TileLayer url={tileUrl} options={tileLayerOptions} />
 				{#if origin}
-					<Marker latLng={originLatLng} />
+					<Marker latLng={originLatLng}>
+						<DivIcon>
+							<div class="text-green-700">
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									viewBox="0 0 24 24"
+									fill="currentColor"
+									class="absolute -left-5 -top-10 h-10 w-10"
+								>
+									<path
+										fill-rule="evenodd"
+										d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 00-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 002.682 2.282 16.975 16.975 0 001.145.742zM12 13.5a3 3 0 100-6 3 3 0 000 6z"
+										clip-rule="evenodd"
+									/>
+								</svg>
+							</div>
+						</DivIcon>
+					</Marker>
 				{/if}
 				{#if destination}
-					<Marker latLng={destinationLatLng} />
+					<Marker latLng={destinationLatLng}>
+						<DivIcon>
+							<div class="text-red-600">
+								<svg
+									xmlns="http://www.w3.org/2000/svg"
+									viewBox="0 0 24 24"
+									fill="currentColor"
+									class="absolute -left-5 -top-10 h-10 w-10"
+								>
+									<path
+										fill-rule="evenodd"
+										d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 00-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 002.682 2.282 16.975 16.975 0 001.145.742zM12 13.5a3 3 0 100-6 3 3 0 000 6z"
+										clip-rule="evenodd"
+									/>
+								</svg>
+							</div>
+						</DivIcon>
+					</Marker>
 				{/if}
-				{#if geoJsonData}
+				{#if routeData?.geometry}
 					<GeoJSON
-						data={geoJsonData}
+						data={routeData.geometry}
 						options={geoJsonOptions}
 						events={['mouseover', 'mouseout']}
 						on:mouseover={handleMouseOver}
@@ -159,7 +217,7 @@
 						class="absolute top-2 right-2 text-red-500 opacity-30"
 						on:click={() => {
 							origin = undefined;
-							geoJsonData = undefined;
+							routeData = undefined;
 						}}
 					>
 						<svg
@@ -194,7 +252,7 @@
 						class="absolute top-2 right-2 text-red-500 opacity-30"
 						on:click={() => {
 							destination = undefined;
-							geoJsonData = undefined;
+							routeData = undefined;
 						}}
 					>
 						<svg
@@ -211,6 +269,25 @@
 						</svg>
 					</button>
 				{/if}
+			</div>
+
+			<div class="py-4">
+				<div
+					class="relative rounded-md bg-white px-3 pt-2.5 pb-1.5 ring-1 ring-inset ring-gray-300 focus-within:z-10 focus-within:ring-2 focus-within:ring-indigo-600"
+				>
+					<p class="text-xs font-medium text-gray-900">Summary</p>
+					<p class="py-2 text-sm">
+						{#if routeData}
+							<p>{formatDistance(routeData.distance)}</p>
+							<p>{formatDuration(routeData.duration)}</p>
+							{#if routeData?.legs?.[0].summary}
+								<p>{routeData.legs[0].summary}</p>
+							{/if}
+						{:else}
+							<p class="text-gray-400">Click the map to get started</p>
+						{/if}
+					</p>
+				</div>
 			</div>
 		</div>
 	</div>
