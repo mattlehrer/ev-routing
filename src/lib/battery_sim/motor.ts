@@ -12,21 +12,21 @@ export type MotorType = 'induction_motor' | 'permanent_magnet_motor';
 
 /**
  * load efficiency approximation
- * @param p_motorout current mechanical power of the motor
- * @param p_motorrated rated power of the motor
+ * @param p_motor_out current mechanical power of the motor
+ * @param p_motor_rated rated power of the motor
  * @param motor_type the type of motor, either 'induction_motor' or 'permanent_magnet_motor'
  * @returns the load efficiency of the motor
  */
 export const efficiency = ({
-	p_motorout,
-	p_motorrated,
+	p_motor_out,
+	p_motor_rated,
 	motor_type,
 }: {
-	p_motorout: number;
-	p_motorrated: number;
+	p_motor_out: number;
+	p_motor_rated: number;
 	motor_type: MotorType;
 }): number => {
-	const x = Math.abs(p_motorout) / p_motorrated;
+	const x = Math.abs(p_motor_out) / p_motor_rated;
 
 	if (x < 0) {
 		throw new Error('x is negative');
@@ -40,7 +40,7 @@ export const efficiency = ({
 	let eout1: number;
 	let eout2: number;
 
-	if (p_motorout > 0) {
+	if (p_motor_out > 0) {
 		if (motor_type === 'induction_motor') {
 			cout1 = 0.9243;
 			cout2 = 0.000127;
@@ -95,31 +95,31 @@ export const efficiency = ({
  * calculates the efficiency normalization factor based
  * on rated output power and efficiency requirements
  * for IE2 efficiency level motors
- * @param p_motorrated rated power of the motor in kW
+ * @param p_motor_rated rated power of the motor in kW
  * @returns the efficiency normalization factor
  */
-export const normfactor = (p_motorrated: number): number => {
-	if (p_motorrated <= 0.75) return 0.817;
-	if (p_motorrated <= 1.1) return 0.839;
-	if (p_motorrated <= 1.5) return 0.855;
-	if (p_motorrated <= 2.2) return 0.874;
-	if (p_motorrated <= 3) return 0.889;
-	if (p_motorrated <= 4) return 0.901;
-	if (p_motorrated <= 5.5) return 0.914;
-	if (p_motorrated <= 7.5) return 0.926;
-	if (p_motorrated <= 11) return 0.94;
-	if (p_motorrated <= 15) return 0.949;
-	if (p_motorrated <= 18.5) return 0.956;
-	if (p_motorrated <= 22) return 0.96;
-	if (p_motorrated <= 30) return 0.968;
-	if (p_motorrated <= 37) return 0.973;
-	if (p_motorrated <= 45) return 0.978;
-	if (p_motorrated <= 55) return 0.981;
-	if (p_motorrated <= 75) return 0.987;
-	if (p_motorrated <= 90) return 0.99;
-	if (p_motorrated <= 110) return 0.993;
-	if (p_motorrated <= 132) return 0.996;
-	if (p_motorrated <= 160) return 0.998;
+export const norm_factor = (p_motor_rated: number): number => {
+	if (p_motor_rated <= 0.75) return 0.817;
+	if (p_motor_rated <= 1.1) return 0.839;
+	if (p_motor_rated <= 1.5) return 0.855;
+	if (p_motor_rated <= 2.2) return 0.874;
+	if (p_motor_rated <= 3) return 0.889;
+	if (p_motor_rated <= 4) return 0.901;
+	if (p_motor_rated <= 5.5) return 0.914;
+	if (p_motor_rated <= 7.5) return 0.926;
+	if (p_motor_rated <= 11) return 0.94;
+	if (p_motor_rated <= 15) return 0.949;
+	if (p_motor_rated <= 18.5) return 0.956;
+	if (p_motor_rated <= 22) return 0.96;
+	if (p_motor_rated <= 30) return 0.968;
+	if (p_motor_rated <= 37) return 0.973;
+	if (p_motor_rated <= 45) return 0.978;
+	if (p_motor_rated <= 55) return 0.981;
+	if (p_motor_rated <= 75) return 0.987;
+	if (p_motor_rated <= 90) return 0.99;
+	if (p_motor_rated <= 110) return 0.993;
+	if (p_motor_rated <= 132) return 0.996;
+	if (p_motor_rated <= 160) return 0.998;
 	return 1.0;
 };
 
@@ -128,33 +128,33 @@ export const normfactor = (p_motorrated: number): number => {
  * in other words, how much power is drawn from the battery
  * to reach this level of motor output power when in motor mode, or
  * how much power is delivered to the battery when in generator mode
- * @param p_motorout current mechanical power of the motor in W
+ * @param p_motor_out current mechanical power of the motor in W
  * @param regen_factor the speed-dependent regeneration factor
  * @param efficiency the load efficiency of the motor
- * @param normfactor the efficiency normalization factor
+ * @param norm_factor the efficiency normalization factor
  * @param p_te traction power in W
  * @returns the input power of the motor in W
  */
-export const p_motorin = ({
-	p_motorout,
+export const p_motor_in = ({
+	p_motor_out,
 	regen_factor,
 	efficiency,
-	normfactor,
+	norm_factor,
 	p_te,
 }: {
-	p_motorout: number;
+	p_motor_out: number;
 	regen_factor: number;
 	efficiency: number;
-	normfactor: number;
+	norm_factor: number;
 	p_te: number;
 }): number => {
 	if (regen_factor < 0 || regen_factor > 1) throw new Error('regen_factor must be between 0 and 1');
 	if (efficiency < 0 || efficiency > 1) throw new Error('efficiency must be between 0 and 1');
 
 	if (p_te <= 0) {
-		return p_motorout * regen_factor * efficiency * normfactor;
+		return p_motor_out * regen_factor * efficiency * norm_factor;
 	} else {
-		return p_motorout / (efficiency * normfactor);
+		return p_motor_out / (efficiency * norm_factor);
 	}
 };
 
