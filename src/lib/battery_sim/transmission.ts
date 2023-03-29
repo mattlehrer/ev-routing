@@ -34,7 +34,7 @@ export const omega_motor = ({
  * @param n_gear gear efficiency of the transmission system
  * @returns mechanical power in Watts
  */
-export const p_motorout = ({
+export const p_motor_out = ({
 	traction_power,
 	n_gear,
 }: {
@@ -50,20 +50,20 @@ export const p_motorout = ({
 
 /**
  * motor output torque in Nm
- * @param p_motorout mechanical power from the motor in Watts
+ * @param p_motor_out mechanical power from the motor in Watts
  * @param omega_motor_speed angular motor speed in rad/s
  * @returns motor output torque in Nm
  * @throws Error if omega_motor is zero
  */
 export const t_motorout = ({
-	p_motorout,
+	p_motor_out,
 	omega_motor_speed,
 }: {
-	p_motorout: number;
+	p_motor_out: number;
 	omega_motor_speed: number;
 }): number => {
 	if (omega_motor_speed === 0) {
 		throw new Error('omega_motor_speed is zero');
 	}
-	return p_motorout / omega_motor_speed;
+	return p_motor_out / omega_motor_speed;
 };
