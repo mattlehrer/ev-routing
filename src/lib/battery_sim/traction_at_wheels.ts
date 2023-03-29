@@ -122,7 +122,7 @@ export const f_te = ({
 	f_la,
 	f_omega_a,
 }: {
-	f_ad: number; // force of erodynamic drag in Newtons
+	f_ad: number; // force of aerodynamic drag in Newtons
 	f_rr: number; // force of rolling resistance in Newtons
 	f_hc: number; // hill climbing force in Newtons
 	f_la: number; // force of linear acceleration in Newtons
