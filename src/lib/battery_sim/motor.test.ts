@@ -313,4 +313,51 @@ describe('motor', () => {
 			).toThrow();
 		});
 	});
+
+	describe('the energy consumption from the battery in one second', () => {
+		it('can be 0', () => {
+			expect(
+				energy_consumption({
+					p_te: 0,
+					n_gear: 0.97,
+					efficiency: 0.95,
+					p_motor_rated: 100,
+					regen_factor: 0,
+					norm_factor: 0.99,
+					p_ac: 0,
+					rte: 0.75,
+				}),
+			).toBe(0);
+		});
+
+		it('is ~308 with only accessories drawing 300', () => {
+			expect(
+				energy_consumption({
+					p_te: 0,
+					n_gear: 0.97,
+					efficiency: 0.95,
+					p_motor_rated: 100,
+					regen_factor: 0,
+					norm_factor: 0.99,
+					p_ac: 300,
+					rte: 0.95,
+				}),
+			).toMatchInlineSnapshot('307.79350562554623');
+		});
+
+		it('is ~308 with only accessories drawing 300', () => {
+			expect(
+				energy_consumption({
+					p_te: -900,
+					n_gear: 0.97,
+					efficiency: 0.99,
+					p_motor_rated: 1000,
+					regen_factor: 1,
+					norm_factor: 0.99,
+					p_ac: 300,
+					rte: 0.95,
+				}),
+			).toMatchInlineSnapshot('-435.6452862690645');
+		});
+	});
 });

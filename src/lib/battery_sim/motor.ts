@@ -8,6 +8,8 @@
  *
  */
 
+import { p_motor_out } from './transmission';
+
 export type MotorType = 'induction_motor' | 'permanent_magnet_motor';
 
 /**
@@ -227,5 +229,88 @@ export const p_total = ({
 		return p_battery_out * Math.sqrt(rte);
 	} else {
 		return p_battery_out / Math.sqrt(rte);
+	}
+};
+
+/**
+ * calculate the energy consumption in Wh in one second
+ * @param p_te the current traction power in W
+ * @param n_gear gear efficiency
+ * @param efficiency motor efficiency
+ * @param p_motor_rated rated power of the motor in W
+ * @param regen_factor the speed-dependent regeneration factor
+ * @param norm_factor the efficiency normalization factor
+ * @param p_ac power draw by the accessories in W
+ * @param rte the round trip efficiency factor for the battery
+ * @returns the energy consumption in Wh in one second
+ */
+export const energy_consumption = ({
+	p_te,
+	n_gear,
+	efficiency,
+	p_motor_rated,
+	regen_factor,
+	norm_factor,
+	p_ac,
+	rte,
+}: {
+	p_te: number;
+	n_gear: number;
+	efficiency: number;
+	p_motor_rated: number;
+	regen_factor: number;
+	norm_factor: number;
+	p_ac: number;
+	rte: number;
+}): number => {
+	const motor_out = p_motor_out({
+		traction_power: p_te,
+		n_gear,
+	});
+
+	console.log({ motor_out });
+
+	const battery_out = p_battery_out({
+		p_motor_in: p_motor_in({
+			p_motor_out: motor_out,
+			regen_factor,
+			efficiency,
+			norm_factor,
+			p_te,
+		}),
+		p_ac,
+	});
+	if (p_te <= 0) {
+		// regeneration from the wheels
+		if (battery_out <= 0) {
+			// battery is charging
+			return (
+				(p_te *
+					n_gear *
+					efficiency *
+					(Math.abs(motor_out) / p_motor_rated) *
+					regen_factor *
+					norm_factor +
+					p_ac) *
+				Math.sqrt(rte)
+			);
+		} else {
+			// battery is discharging because accessories draw exceeds regen
+			return (
+				(p_te *
+					n_gear *
+					efficiency *
+					(Math.abs(motor_out) / p_motor_rated) *
+					regen_factor *
+					norm_factor +
+					p_ac) /
+				Math.sqrt(rte)
+			);
+		}
+	} else {
+		return (
+			(p_te / (n_gear * efficiency * (Math.abs(motor_out) / p_motor_rated) * norm_factor) + p_ac) /
+			Math.sqrt(rte)
+		);
 	}
 };
