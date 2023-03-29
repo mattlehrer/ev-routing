@@ -90,3 +90,35 @@ export const efficiency = ({
 		return eout1 * x + eout2;
 	}
 };
+
+/**
+ * calculates the efficiency normalization factor based
+ * on rated output power and efficiency requirements
+ * for IE2 efficiency level motors
+ * @param p_motorrated rated power of the motor in kW
+ * @returns the efficiency normalization factor
+ */
+export const normfactor = (p_motorrated: number): number => {
+	if (p_motorrated <= 0.75) return 0.817;
+	if (p_motorrated <= 1.1) return 0.839;
+	if (p_motorrated <= 1.5) return 0.855;
+	if (p_motorrated <= 2.2) return 0.874;
+	if (p_motorrated <= 3) return 0.889;
+	if (p_motorrated <= 4) return 0.901;
+	if (p_motorrated <= 5.5) return 0.914;
+	if (p_motorrated <= 7.5) return 0.926;
+	if (p_motorrated <= 11) return 0.94;
+	if (p_motorrated <= 15) return 0.949;
+	if (p_motorrated <= 18.5) return 0.956;
+	if (p_motorrated <= 22) return 0.96;
+	if (p_motorrated <= 30) return 0.968;
+	if (p_motorrated <= 37) return 0.973;
+	if (p_motorrated <= 45) return 0.978;
+	if (p_motorrated <= 55) return 0.981;
+	if (p_motorrated <= 75) return 0.987;
+	if (p_motorrated <= 90) return 0.99;
+	if (p_motorrated <= 110) return 0.993;
+	if (p_motorrated <= 132) return 0.996;
+	if (p_motorrated <= 160) return 0.998;
+	return 1.0;
+};

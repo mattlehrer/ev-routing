@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { efficiency } from './motor';
+import { efficiency, normfactor } from './motor';
 
 describe('motor', () => {
 	describe('the efficiency curve', () => {
@@ -121,6 +121,20 @@ describe('motor', () => {
 			});
 
 			expect(induction < permanent).toBeTruthy();
+		});
+	});
+
+	describe('the normalization factor based on motor size', () => {
+		it('is 1 for a 200kW motor', () => {
+			expect(normfactor(200)).toBe(1);
+		});
+
+		it('is 0.817 for a 0.5kW motor', () => {
+			expect(normfactor(0.5)).toBe(0.817);
+		});
+
+		it('is 0.998 for a 150kW motor', () => {
+			expect(normfactor(150)).toBe(0.998);
 		});
 	});
 });
