@@ -28,6 +28,11 @@
 			destination = formatLatLng(e.detail.latlng);
 			destinationLatLng = [e.detail.latlng.lat, e.detail.latlng.lng];
 		}
+		if (origin && destination) {
+			await getRoute();
+		}
+	}
+	async function getRoute() {
 		const res = await fetch('/api/route', {
 			method: 'POST',
 			headers: {
@@ -152,7 +157,10 @@
 				{#if origin}
 					<button
 						class="absolute top-2 right-2 text-red-500 opacity-30"
-						on:click={() => (origin = undefined)}
+						on:click={() => {
+							origin = undefined;
+							geoJsonData = undefined;
+						}}
 					>
 						<svg
 							xmlns="http://www.w3.org/2000/svg"
@@ -184,7 +192,10 @@
 				{#if destination}
 					<button
 						class="absolute top-2 right-2 text-red-500 opacity-30"
-						on:click={() => (destination = undefined)}
+						on:click={() => {
+							destination = undefined;
+							geoJsonData = undefined;
+						}}
 					>
 						<svg
 							xmlns="http://www.w3.org/2000/svg"
