@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { efficiency, normfactor, p_motorin, p_total } from './motor';
+import { efficiency, normfactor, p_motorin, p_total, regen_factor } from './motor';
 
 describe('motor', () => {
 	describe('the efficiency curve', () => {
@@ -261,6 +261,20 @@ describe('motor', () => {
 					p_te: -100,
 				}),
 			).toThrow();
+		});
+	});
+
+	describe('the regeneration factor', () => {
+		it('is 0 for p_te of 0', () => {
+			expect(regen_factor({ u: 1.39 })).toBe(0);
+		});
+
+		it('is 0.5 for p_te of 100', () => {
+			expect(regen_factor({ u: 1.39 + 3.33 / 2 })).toBeCloseTo(0.5);
+		});
+
+		it('is 1 above 4.72', () => {
+			expect(regen_factor({ u: 5 })).toBe(1);
 		});
 	});
 

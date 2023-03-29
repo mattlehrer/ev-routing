@@ -159,6 +159,40 @@ export const p_motorin = ({
 };
 
 /**
+ * calculates the regeneration factor based on the current speed,
+ * minimum speed for regeneration, and
+ * the speed for maximum regneration (above which additional energy is heat waste)
+ * @param u the current speed of the vehicle in m/s
+ * @param u1 the minimum speed for regeneration in m/s
+ * @param u2 the speed for maximum regneration in m/s
+ * @param c the slope of the linear function
+ * @returns the regeneration factor, between 0 and 1
+ */
+export const regen_factor = ({
+	u,
+	u1 = 1.39,
+	u2 = 4.72,
+	c = 1 / (4.72 - 1.39),
+}: {
+	u: number;
+	u1?: number;
+	u2?: number;
+	c?: number;
+}): number => {
+	if (u1 < 0) throw new Error('u1 must be greater than 0');
+	if (u2 < 0) throw new Error('u2 must be greater than 0');
+	if (u2 < u1) throw new Error('u2 must be greater than u1');
+
+	if (u <= u1) {
+		return 0;
+	} else if (u <= u2) {
+		return c * (u - u1);
+	} else {
+		return 1;
+	}
+};
+
+/**
  * calculates the total power of the motor in W
  * @param p_battery_out current power of the battery in W
  * @param rte the round trip efficiency factor for the battery
