@@ -157,3 +157,19 @@ export const p_motorin = ({
 		return p_motorout / (efficiency * normfactor);
 	}
 };
+
+/**
+ * calculates the total power of the motor in W
+ * @param p_battery_out current power of the battery in W
+ * @param rte the round trip efficiency factor for the battery
+ * @return the total power of the motor in W
+ */
+export const p_total = ({ p_battery_out, rte }: { p_battery_out: number; rte: number }): number => {
+	if (rte <= 0 || rte > 1) throw new Error('rte must be between 0 and 1');
+
+	if (p_battery_out <= 0) {
+		return p_battery_out * Math.sqrt(rte);
+	} else {
+		return p_battery_out / Math.sqrt(rte);
+	}
+};

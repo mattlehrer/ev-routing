@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { efficiency, normfactor, p_motorin } from './motor';
+import { efficiency, normfactor, p_motorin, p_total } from './motor';
 
 describe('motor', () => {
 	describe('the efficiency curve', () => {
@@ -259,6 +259,35 @@ describe('motor', () => {
 					efficiency: 1.1,
 					normfactor: 1.0,
 					p_te: -100,
+				}),
+			).toThrow();
+		});
+	});
+
+	describe('the total output power of the motor', () => {
+		it('is 0 for p_battery_out of 0', () => {
+			expect(
+				p_total({
+					p_battery_out: 0,
+					rte: 0.5,
+				}),
+			).toBe(0);
+		});
+
+		it('is 200 for rte of 0.25 and p_battery_out of 100', () => {
+			expect(
+				p_total({
+					p_battery_out: 100,
+					rte: 0.25,
+				}),
+			).toBe(200);
+		});
+
+		it('throws for rte of 0', () => {
+			expect(() =>
+				p_total({
+					p_battery_out: 100,
+					rte: 0,
 				}),
 			).toThrow();
 		});
