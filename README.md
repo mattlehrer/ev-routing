@@ -13,13 +13,15 @@ This repo only has data for the road network of Sweden but can be extended with 
 ## Todo:
 
 6. Add initial charge state (SoC) and show stats for default car specifications.
-7. Add elevation data.
-8. Calculate each route segment's energy consumption.
-   1. Use the simulation model from [Genikomsakis, K. N., & Mitrentsis, G. (2017)](https://www.sciencedirect.com/science/article/pii/S1361920915302881). A computationally efficient simulation model for estimating energy consumption of electric vehicles in the context of route planning applications. Transportation Research Part D: Transport and Environment, 50, 98–118. https://doi.org/10.1016/j.trd.2016.10.014.
-   2. Use the [Dynamometer Drive Schedules](https://www.epa.gov/vehicle-and-fuel-emissions-testing/dynamometer-drive-schedules) from the EPA.
-9. Add charging station locations with available ports and pricing.
-10. Calculate cheapest route with charging.
-11. Show the route, the pricing, and the energy consumption.
-12. Convert route to a gradient with current battery level as color of the route.
+7. Estimate each route segment's energy consumption.
+   1. Start with assuming flat road and constant speed at the average according to the route data.
+   2. Later, improve the estimate:
+      1. Use the simulation model from [Genikomsakis, K. N., & Mitrentsis, G. (2017)](https://www.sciencedirect.com/science/article/pii/S1361920915302881). A computationally efficient simulation model for estimating energy consumption of electric vehicles in the context of route planning applications. Transportation Research Part D: Transport and Environment, 50, 98–118. https://doi.org/10.1016/j.trd.2016.10.014.
+      2. Use the [Dynamometer Drive Schedules](https://www.epa.gov/vehicle-and-fuel-emissions-testing/dynamometer-drive-schedules) from the EPA.
+8. Add charging station locations with available ports and pricing.
+9.  Calculate cheapest route with charging.
+10. Show the route, the pricing, and the energy consumption.
+11. Convert route to a gradient with current battery level as color of the route.
+12. Add elevation data.
 13. Hover on route to show stats.
 14. Add ability to change default car specifications.
