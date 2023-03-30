@@ -1,7 +1,10 @@
 import OSRM from '@project-osrm/osrm';
 const osrm = new OSRM({ path: 'osrmdata/sweden-latest.osrm', algorithm: 'MLD' });
 
-export function getRoute(data: { origin: [number, number]; destination: [number, number] }) {
+export function getRoute(data: {
+	origin: [number, number];
+	destination: [number, number];
+}): Promise<OSRM.Route> {
 	return new Promise((resolve, reject) => {
 		console.log({ data });
 		const [olat, olon] = data.origin;
