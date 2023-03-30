@@ -166,10 +166,10 @@
 		{/if}
 	</div>
 
-	<div id="route" class="absolute top-0 left-0 z-10 w-64 p-3">
+	<div id="route" class="absolute left-0 top-0 z-10 w-64 p-3">
 		<div class="isolate -space-y-px rounded-md shadow-sm">
 			<div
-				class="relative rounded-md rounded-b-none bg-white px-3 pt-2.5 pb-1.5 ring-1 ring-inset ring-gray-300 focus-within:z-10 focus-within:ring-2 focus-within:ring-indigo-600"
+				class="relative rounded-md rounded-b-none bg-white px-3 pb-1.5 pt-2.5 ring-1 ring-inset ring-gray-300 focus-within:z-10 focus-within:ring-2 focus-within:ring-indigo-600"
 			>
 				<label for="origin" class="block text-xs font-medium text-gray-900">Origin</label>
 				<input
@@ -182,7 +182,7 @@
 				/>
 				{#if origin}
 					<button
-						class="absolute top-2 right-2 text-red-500 opacity-30"
+						class="absolute right-2 top-2 text-red-500 opacity-30"
 						on:click={() => {
 							origin = undefined;
 							routeData = undefined;
@@ -204,7 +204,7 @@
 				{/if}
 			</div>
 			<div
-				class="relative rounded-md rounded-t-none bg-white px-3 pt-2.5 pb-1.5 ring-1 ring-inset ring-gray-300 focus-within:z-10 focus-within:ring-2 focus-within:ring-indigo-600"
+				class="relative rounded-md rounded-t-none bg-white px-3 pb-1.5 pt-2.5 ring-1 ring-inset ring-gray-300 focus-within:z-10 focus-within:ring-2 focus-within:ring-indigo-600"
 			>
 				<label for="destination" class="block text-xs font-medium text-gray-900">Destination</label>
 				<input
@@ -217,7 +217,7 @@
 				/>
 				{#if destination}
 					<button
-						class="absolute top-2 right-2 text-red-500 opacity-30"
+						class="absolute right-2 top-2 text-red-500 opacity-30"
 						on:click={() => {
 							destination = undefined;
 							routeData = undefined;
@@ -241,16 +241,16 @@
 
 			<div class="py-4">
 				<div
-					class="relative rounded-md bg-white px-3 pt-2.5 pb-1.5 ring-1 ring-inset ring-gray-300 focus-within:z-10 focus-within:ring-2 focus-within:ring-indigo-600"
+					class="relative rounded-md bg-white px-3 pb-1.5 pt-2.5 ring-1 ring-inset ring-gray-300 focus-within:z-10 focus-within:ring-2 focus-within:ring-indigo-600"
 				>
 					<p class="text-xs font-medium text-gray-900">Summary</p>
 					<p class="py-2 text-sm">
 						{#if routeData}
-							<p>{formatDistance(routeData.distance)}</p>
-							<p>{formatDuration(routeData.duration)}</p>
 							{#if routeData?.legs?.[0].summary}
 								<p>{routeData.legs[0].summary}</p>
 							{/if}
+							<p>{formatDistance(routeData.distance)}</p>
+							<p>{formatDuration(routeData.duration)}</p>
 						{:else}
 							<p class="text-gray-400">Click the map to get started</p>
 						{/if}
