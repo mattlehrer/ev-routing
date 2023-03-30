@@ -1,38 +1,25 @@
-# create-svelte
+# Electric Vehicle Routing with Charging Stations and Pricing
 
-Everything you need to build a Svelte project, powered by [`create-svelte`](https://github.com/sveltejs/kit/tree/master/packages/create-svelte).
+This repo only has data for the road network of Sweden but can be extended with Open Street Map data from Geofabrik for other countries or the planet.
 
-## Creating a project
+## How it works
 
-If you're seeing this, you've probably already done this step. Congrats!
+1. Click the map for origin, then again for destination.
+2. A request with the lat/lon of the origin and destination is sent to the server.
+3. The server uses node bindings for the [OSRM](https://github.com/Project-OSRM/osrm-backend/blob/master/docs/nodejs/api.md) routing engine to find the fastest route between the origin and destination, using the multi-level Dijkstra algorithm.
+4. The server sends the data about the fastest route to the client.
+5. The route is added to the map, along with a short summary of the route with distance and duration.
 
-```bash
-# create a new project in the current directory
-npm create svelte@latest
+## Todo:
 
-# create a new project in my-app
-npm create svelte@latest my-app
-```
-
-## Developing
-
-Once you've created a project and installed dependencies with `npm install` (or `pnpm install` or `yarn`), start a development server:
-
-```bash
-npm run dev
-
-# or start the server and open the app in a new browser tab
-npm run dev -- --open
-```
-
-## Building
-
-To create a production version of your app:
-
-```bash
-npm run build
-```
-
-You can preview the production build with `npm run preview`.
-
-> To deploy your app, you may need to install an [adapter](https://kit.svelte.dev/docs/adapters) for your target environment.
+6. Add initial charge state (SoC) and show stats for default car specifications.
+7. Add elevation data.
+8. Calculate each route segment's energy consumption.
+   1. Use the simulation model from [Genikomsakis, K. N., & Mitrentsis, G. (2017)](https://www.sciencedirect.com/science/article/pii/S1361920915302881). A computationally efficient simulation model for estimating energy consumption of electric vehicles in the context of route planning applications. Transportation Research Part D: Transport and Environment, 50, 98–118. https://doi.org/10.1016/j.trd.2016.10.014.
+   2. Use the [Dynamometer Drive Schedules](https://www.epa.gov/vehicle-and-fuel-emissions-testing/dynamometer-drive-schedules) from the EPA.
+9. Add charging station locations with available ports and pricing.
+10. Calculate cheapest route with charging.
+11. Show the route, the pricing, and the energy consumption.
+12. Convert route to a gradient with current battery level as color of the route.
+13. Hover on route to show stats.
+14. Add ability to change default car specifications.
