@@ -1,6 +1,6 @@
 # Electric Vehicle Routing with Charging Stations and Pricing
 
-This repo only has data for the road network of Sweden but can be extended with Open Street Map data from Geofabrik for other countries or the planet.
+This repo only has data for the road network of Sweden but can be extended with Open Street Map data from [Geofabrik](https://download.geofabrik.de/index.html) for other countries or the planet.
 
 ## How it works
 
