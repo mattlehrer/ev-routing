@@ -17,7 +17,7 @@ This repo only has data for the road network of Sweden but can be extended with 
    1. Start with assuming flat road and constant speed at the average according to the route data.
    2. Later, improve the estimate:
       1. Use the simulation model from [Genikomsakis, K. N., & Mitrentsis, G. (2017)](https://www.sciencedirect.com/science/article/pii/S1361920915302881). A computationally efficient simulation model for estimating energy consumption of electric vehicles in the context of route planning applications. Transportation Research Part D: Transport and Environment, 50, 98–118. https://doi.org/10.1016/j.trd.2016.10.014.
-      2. Use the [Dynamometer Drive Schedules](https://www.epa.gov/vehicle-and-fuel-emissions-testing/dynamometer-drive-schedules) from the EPA.
+      2. Use the [Common Artemis Driving Cycles](https://dieselnet.com/standards/cycles/artemis.php) developed for European real-world driving patterns.
 8. Add charging station locations with available ports and pricing.
 9.  Calculate cheapest route with charging.
 10. Show the route, the pricing, and the energy consumption.
