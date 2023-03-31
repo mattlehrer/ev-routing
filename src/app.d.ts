@@ -14,7 +14,4 @@ declare module 'svelte-leafletjs?client' {
 	export = all;
 }
 
-declare module '*?client';
-declare module '*?server';
-
 export {};
