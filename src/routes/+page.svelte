@@ -2,36 +2,16 @@
 	import { browser } from '$app/environment';
 	import { PUBLIC_THUNDERFOREST_API_KEY } from '$env/static/public';
 	import { GeoJSON, LeafletMap, Marker, DivIcon, TileLayer } from 'svelte-leafletjs?client';
-	import type { GeoJSONOptions, LatLng, Map } from 'leaflet';
+	import type { GeoJSONOptions, Map } from 'leaflet';
 	import 'leaflet/dist/leaflet.css';
-	import humanizeDuration from 'humanize-duration';
 	import { onMount } from 'svelte';
+	import { formatDistance, formatDuration, formatLatLng } from '$lib/utils/formatters';
 
 	let origin: string | undefined;
 	let destination: string | undefined;
 	let originLatLng: [number, number];
 	let destinationLatLng: [number, number];
 	let routeData: any;
-
-	function formatLatLng(latlng: LatLng) {
-		return [
-			(latlng.lat as number).toLocaleString(undefined, { maximumFractionDigits: 5 }),
-			(latlng.lng as number).toLocaleString(undefined, { maximumFractionDigits: 5 }),
-		].join(', ');
-	}
-
-	function formatDistance(distance: number) {
-		return new Intl.NumberFormat(undefined, {
-			style: 'unit',
-			unit: 'kilometer',
-			unitDisplay: 'short',
-			maximumFractionDigits: 1,
-		}).format(distance / 1000);
-	}
-
-	function formatDuration(duration: number) {
-		return humanizeDuration(duration * 1000, { units: ['h', 'm'], round: true });
-	}
 
 	async function handleClick(e: any) {
 		// console.log(e.detail.latlng);
