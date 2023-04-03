@@ -12,6 +12,7 @@ export function getRoute(data: {
 		osrm.route(
 			{
 				coordinates: [
+					// data is received as lat/lon but OSRM needs lon/lat
 					[olon, olat],
 					[dlon, dlat],
 				],
