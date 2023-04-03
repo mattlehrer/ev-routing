@@ -6,12 +6,14 @@
 	import 'leaflet/dist/leaflet.css';
 	import { onMount } from 'svelte';
 	import { formatDistance, formatDuration, formatLatLng } from '$lib/utils/formatters';
+	import type OSRM from '@project-osrm/osrm';
 
 	let origin: string | undefined;
 	let destination: string | undefined;
 	let originLatLng: [number, number];
 	let destinationLatLng: [number, number];
-	let routeData: any;
+	let routeData: OSRM.Route | undefined;
+	let hoveredStep: OSRM.RouteStep | undefined;
 
 	async function handleClick(e: any) {
 		// console.log(e.detail.latlng);
@@ -24,8 +26,15 @@
 		}
 		if (origin && destination) {
 			await getRoute();
+			// zoom to route
+			L.fitBounds([originLatLng, destinationLatLng]);
 		}
 	}
+
+	async function handleStepHover(e: CustomEvent) {
+		hoveredStep = e.detail;
+	}
+
 	async function getRoute() {
 		const res = await fetch('/api/route', {
 			method: 'POST',
@@ -221,20 +230,35 @@
 
 			<div class="py-4">
 				<div
-					class="relative rounded-md bg-white px-3 pb-1.5 pt-2.5 ring-1 ring-inset ring-gray-300 focus-within:z-10 focus-within:ring-2 focus-within:ring-indigo-600"
+					class="relative rounded-md bg-white bg-opacity-70 px-3 pb-1.5 pt-2.5 ring-1 ring-inset ring-gray-300 focus-within:z-10 focus-within:ring-2 focus-within:ring-indigo-600"
 				>
-					<p class="text-xs font-medium text-gray-900">Summary</p>
-					<p class="py-2 text-sm">
+					<h2 class="text-xs font-medium text-gray-900">Summary</h2>
+					<div class="py-2 text-sm">
 						{#if routeData}
-							{#if routeData?.legs?.[0].summary}
-								<p>{routeData.legs[0].summary}</p>
-							{/if}
-							<p>{formatDistance(routeData.distance)}</p>
-							<p>{formatDuration(routeData.duration)}</p>
+							<div class="text-base">
+								{#if routeData?.legs?.[0].summary}
+									<p>{routeData.legs[0].summary}</p>
+								{/if}
+								<p>{formatDistance(routeData.distance)}</p>
+								<p>{formatDuration(routeData.duration)}</p>
+								{#each routeData.legs as leg}
+									<div class="mt-8">
+										<!-- <h3 class="text-base">
+										{leg.summary}: {formatDistance(leg.distance)} ({formatDuration(leg.duration)})
+									</h3> -->
+										{#each leg.steps as step}
+											<p on:mouseenter={() => handleStepHover} class="mt-2 text-sm">
+												{step.maneuver.type}
+												{step.maneuver.modifier ?? ''}
+											</p>
+										{/each}
+									</div>
+								{/each}
+							</div>
 						{:else}
 							<p class="text-gray-400">Click the map to get started</p>
 						{/if}
-					</p>
+					</div>
 				</div>
 			</div>
 		</div>
