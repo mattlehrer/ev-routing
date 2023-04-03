@@ -31,8 +31,10 @@
 		}
 	}
 
-	async function handleStepHover(e: CustomEvent) {
-		hoveredStep = e.detail;
+	async function handleStepHover(step: OSRM.RouteStep) {
+		hoveredStep = step;
+		const [lat, lon] = hoveredStep.maneuver.location;
+		if (hoveredStep) L.panTo([lon, lat], { duration: 0.5 });
 	}
 
 	async function getRoute() {
@@ -228,9 +230,9 @@
 				{/if}
 			</div>
 
-			<div class="py-4">
+			<div class="max-h-full py-4">
 				<div
-					class="relative rounded-md bg-white bg-opacity-70 px-3 pb-1.5 pt-2.5 ring-1 ring-inset ring-gray-300 focus-within:z-10 focus-within:ring-2 focus-within:ring-indigo-600"
+					class="relative max-h-[80vh] overflow-y-scroll rounded-md bg-white bg-opacity-70 px-3 pb-1.5 pt-2.5 ring-1 ring-inset ring-gray-300 focus-within:z-10 focus-within:ring-2 focus-within:ring-indigo-600"
 				>
 					<h2 class="text-xs font-medium text-gray-900">Summary</h2>
 					<div class="py-2 text-sm">
@@ -247,10 +249,16 @@
 										{leg.summary}: {formatDistance(leg.distance)} ({formatDuration(leg.duration)})
 									</h3> -->
 										{#each leg.steps as step}
-											<p on:mouseenter={() => handleStepHover} class="mt-2 text-sm">
-												{step.maneuver.type}
-												{step.maneuver.modifier ?? ''}
-											</p>
+											<div class="mt-2 text-sm">
+												<p
+													on:mouseover={() => handleStepHover(step)}
+													on:focus={() => handleStepHover(step)}
+												>
+													{step.maneuver.type}
+													{step.maneuver.modifier ?? ''}
+												</p>
+												<p>{step.name} for {formatDistance(step.distance)}</p>
+											</div>
 										{/each}
 									</div>
 								{/each}
