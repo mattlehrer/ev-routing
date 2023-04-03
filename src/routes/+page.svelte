@@ -2,12 +2,11 @@
 	import { browser } from '$app/environment';
 	import { PUBLIC_THUNDERFOREST_API_KEY } from '$env/static/public';
 	import { GeoJSON, LeafletMap, Marker, DivIcon, TileLayer } from 'svelte-leafletjs?client';
-	import type { GeoJSONOptions, Map } from 'leaflet';
+	import type { Map } from 'leaflet';
 	import 'leaflet/dist/leaflet.css';
 	import { onMount } from 'svelte';
 	import { formatDistance, formatDuration, formatLatLng } from '$lib/utils/formatters';
 	import type OSRM from '@project-osrm/osrm';
-	import type { LatLng } from 'leaflet';
 
 	let origin: string | undefined;
 	let destination: string | undefined;
@@ -17,7 +16,7 @@
 	let hoveredStep: OSRM.RouteStep | undefined;
 	let hoveredStepLonLat: [number, number] | undefined;
 
-	async function handleClick(e: any) {
+	async function handleClick(e: CustomEvent) {
 		// console.log(e.detail.latlng);
 		if (!origin) {
 			origin = formatLatLng(e.detail.latlng);
@@ -83,24 +82,13 @@
 		L.zoomControl.setPosition('topright');
 	});
 
-	let color = '#0000ff';
-	const geoJsonOptions = {
-		style: function (geoJsonFeature: GeoJSONOptions) {
-			// console.log('style', geoJsonFeature);
-			return { color };
-		},
-		onEachFeature: function (feature: any, layer: any) {
-			// console.log('onEachFeature', feature, layer);
-		},
-	};
-
 	let pointer: [number, number] | undefined = undefined;
 
 	const handleMouseOver = (e: CustomEvent) => {
 		pointer = [e.detail.latlng.lat, e.detail.latlng.lng];
 	};
 
-	const handleMouseOut = (e: CustomEvent) => {
+	const handleMouseOut = () => {
 		setTimeout(() => {
 			pointer = undefined;
 		}, 1000);
@@ -143,18 +131,17 @@
 				{#if routeData?.geometry}
 					<GeoJSON
 						data={routeData.geometry}
-						options={geoJsonOptions}
 						events={['mouseover', 'mouseout']}
 						on:mouseover={handleMouseOver}
 						on:mouseout={handleMouseOut}
 					/>
-					{#if pointer}
+					<!-- {#if pointer}
 						<Marker latLng={pointer}>
 							<DivIcon>
 								<div class="-m-10 h-10 w-10 bg-white">Hello</div>
 							</DivIcon>
 						</Marker>
-					{/if}
+					{/if} -->
 					{#if hoveredStep}
 						<GeoJSON
 							data={hoveredStep.geometry}
