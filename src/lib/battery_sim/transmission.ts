@@ -10,6 +10,7 @@
 
 /**
  * angular motor speed in rad/s
+ * @param g_ratio gear ratio of the transmission system
  * @param u_angular motor speed in rad/s
  * @param r_wheel wheel radius in m
  * @returns linear motor speed in m/s
