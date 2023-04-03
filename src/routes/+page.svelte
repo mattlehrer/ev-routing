@@ -7,6 +7,7 @@
 	import { onMount } from 'svelte';
 	import { formatDistance, formatDuration, formatLatLng } from '$lib/utils/formatters';
 	import type OSRM from '@project-osrm/osrm';
+	import type { LatLng } from 'leaflet';
 
 	let origin: string | undefined;
 	let destination: string | undefined;
@@ -14,6 +15,7 @@
 	let destinationLatLng: [number, number];
 	let routeData: OSRM.Route | undefined;
 	let hoveredStep: OSRM.RouteStep | undefined;
+	let hoveredStepLonLat: [number, number] | undefined;
 
 	async function handleClick(e: any) {
 		// console.log(e.detail.latlng);
@@ -34,6 +36,7 @@
 	async function handleStepHover(step: OSRM.RouteStep) {
 		hoveredStep = step;
 		const [lat, lon] = hoveredStep.maneuver.location;
+		hoveredStepLonLat = [lon, lat];
 		if (hoveredStep) L.panTo([lon, lat], { duration: 0.5 });
 	}
 
@@ -152,6 +155,13 @@
 							</DivIcon>
 						</Marker>
 					{/if}
+					{#if hoveredStep}
+						<GeoJSON
+							data={hoveredStep.geometry}
+							options={{ color: 'red', opacity: 0.65 }}
+							events={['mouseover', 'mouseout']}
+						/>
+					{/if}
 				{/if}
 			</LeafletMap>
 		{/if}
@@ -253,6 +263,8 @@
 												<p
 													on:mouseover={() => handleStepHover(step)}
 													on:focus={() => handleStepHover(step)}
+													on:mouseout={() => (hoveredStepLonLat = undefined)}
+													on:blur={() => (hoveredStepLonLat = undefined)}
 												>
 													{step.maneuver.type}
 													{step.maneuver.modifier ?? ''}
