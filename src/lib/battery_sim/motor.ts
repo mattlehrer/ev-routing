@@ -167,14 +167,12 @@ export const p_motor_in = ({
  * @param u the current speed of the vehicle in m/s
  * @param u1 the minimum speed for regeneration in m/s
  * @param u2 the speed for maximum regneration in m/s
- * @param c the slope of the linear function
  * @returns the regeneration factor, between 0 and 1
  */
 export const regen_factor = ({
 	u,
 	u1 = 1.39,
 	u2 = 4.72,
-	c = 1 / (4.72 - 1.39),
 }: {
 	u: number;
 	u1?: number;
@@ -184,6 +182,8 @@ export const regen_factor = ({
 	if (u1 < 0) throw new Error('u1 must be greater than 0');
 	if (u2 < 0) throw new Error('u2 must be greater than 0');
 	if (u2 < u1) throw new Error('u2 must be greater than u1');
+
+	const c = 1 / (u2 - u1);
 
 	if (u <= u1) {
 		return 0;
