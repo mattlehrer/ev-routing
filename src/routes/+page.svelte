@@ -51,7 +51,7 @@
 			}),
 		});
 		const data = await res.json();
-		routeData = data;
+		routeData = data.route;
 		// console.log(routeData);
 		console.log(data);
 	}
@@ -246,17 +246,19 @@
 										{leg.summary}: {formatDistance(leg.distance)} ({formatDuration(leg.duration)})
 									</h3> -->
 										{#each leg.steps as step}
-											<div class="mt-2 text-sm">
-												<p
-													on:mouseover={() => handleStepHover(step)}
-													on:focus={() => handleStepHover(step)}
-													on:mouseout={() => (hoveredStepLonLat = undefined)}
-													on:blur={() => (hoveredStepLonLat = undefined)}
-												>
+											<div
+												on:mouseover={() => handleStepHover(step)}
+												on:focus={() => handleStepHover(step)}
+												on:mouseout={() => (hoveredStepLonLat = undefined)}
+												on:blur={() => (hoveredStepLonLat = undefined)}
+												class="mt-2 text-sm"
+											>
+												<p>
 													{step.maneuver.type}
 													{step.maneuver.modifier ?? ''}
 												</p>
 												<p>{step.name} for {formatDistance(step.distance)}</p>
+												<p>using {step.power} Wh</p>
 											</div>
 										{/each}
 									</div>
