@@ -210,7 +210,7 @@ export const calc_p_battery_out = ({
 };
 
 /**
- * calculates the total power of the motor in W
+ * calculates the total power flow for the battery in W
  * @param p_battery_out current power of the battery in W
  * @param rte the round trip efficiency factor for the battery
  * @return the total power of the motor in W

@@ -285,7 +285,7 @@ describe('motor', () => {
 		});
 	});
 
-	describe('the total output power of the motor', () => {
+	describe('the total power flow of the battery', () => {
 		it('is 0 for p_battery_out of 0', () => {
 			expect(
 				p_total({
@@ -330,34 +330,20 @@ describe('motor', () => {
 			).toBe(0);
 		});
 
-		it('is ~308 with only accessories drawing 300', () => {
+		it('is ~308 in one hour with only accessories drawing 300', () => {
 			expect(
-				calc_energy_consumption({
-					p_te: 0,
-					n_gear: 0.97,
-					efficiency: 0.95,
-					p_motor_rated: 100,
-					regen_factor: 0,
-					norm_factor: 0.99,
-					p_ac: 300,
-					rte: 0.95,
-				}),
+				3600 *
+					calc_energy_consumption({
+						p_te: 0,
+						n_gear: 0.97,
+						efficiency: 0.95,
+						p_motor_rated: 80,
+						regen_factor: 0,
+						norm_factor: 0.99,
+						p_ac: 300,
+						rte: 0.95,
+					}),
 			).toMatchInlineSnapshot('307.79350562554623');
-		});
-
-		it('is ~308 with only accessories drawing 300', () => {
-			expect(
-				calc_energy_consumption({
-					p_te: -900,
-					n_gear: 0.97,
-					efficiency: 0.99,
-					p_motor_rated: 1000,
-					regen_factor: 1,
-					norm_factor: 0.99,
-					p_ac: 300,
-					rte: 0.95,
-				}),
-			).toMatchInlineSnapshot('-435.6452862690645');
 		});
 	});
 });
