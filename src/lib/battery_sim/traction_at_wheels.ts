@@ -17,15 +17,15 @@
  * @returns force of aerodynamic drag in Newtons
  */
 export const calc_f_ad = ({
-	rho = 1.225, // density of air in kg/m^3 at 15C
-	c_d = 0.315,
-	area = 2.755,
-	v = 0,
+	rho,
+	c_d,
+	area,
+	v,
 }: {
-	rho?: number; // density of air in kg/m^3
-	c_d?: number; // drag coefficient
-	area?: number; // frontal area in m^2
-	v?: number; // velocity in m/s
+	rho: number; // density of air in kg/m^3
+	c_d: number; // drag coefficient
+	area: number; // frontal area in m^2
+	v: number; // velocity in m/s
 }): number => {
 	return 0.5 * rho * c_d * area * v ** 2;
 };
@@ -34,20 +34,20 @@ export const calc_f_ad = ({
  * force of rolling resistance in Newtons
  * @param mu_rr rolling resistance coefficient
  * @param m mass in kg
- * @param g gravitational acceleration in m/s^2
  * @param theta slope angle in radians
+ * @param g gravitational acceleration in m/s^2
  * @returns force of rolling resistance in Newtons
  */
 export const calc_f_rr = ({
-	mu_rr = 0.01,
-	m = 1500,
+	mu_rr,
+	m,
+	theta,
 	g = 9.81,
-	theta = 0,
 }: {
-	mu_rr?: number; // rolling resistance coefficient
-	m?: number; // mass in kg
+	mu_rr: number; // rolling resistance coefficient
+	m: number; // mass in kg
+	theta: number; // slope angle in radians
 	g?: number; // gravitational acceleration in m/s^2
-	theta?: number; // slope angle in radians
 }): number => {
 	return mu_rr * m * g * Math.cos(theta);
 };
@@ -55,18 +55,18 @@ export const calc_f_rr = ({
 /**
  * hill climbing force in Newtons
  * @param m mass in kg
- * @param g gravitational acceleration in m/s^2
  * @param theta slope angle in radians
+ * @param g gravitational acceleration in m/s^2
  * @returns hill climbing force in Newtons
  */
 export const calc_f_hc = ({
-	m = 1500,
+	m,
+	theta,
 	g = 9.81,
-	theta = 0,
 }: {
-	m?: number; // mass in kg
+	m: number; // mass in kg
+	theta: number; // slope angle in radians
 	g?: number; // gravitational acceleration in m/s^2
-	theta?: number; // slope angle in radians
 }): number => {
 	return m * g * Math.sin(theta);
 };
@@ -78,11 +78,11 @@ export const calc_f_hc = ({
  * @returns force of linear acceleration in Newtons
  */
 export const calc_f_la = ({
-	m = 1500,
-	a = 0,
+	m,
+	a,
 }: {
-	m?: number; // mass in kg
-	a?: number; // acceleration in m/s^2
+	m: number; // mass in kg
+	a: number; // acceleration in m/s^2
 }): number => {
 	return m * a;
 };
@@ -95,13 +95,13 @@ export const calc_f_la = ({
  * @returns inertial force in Newtons
  */
 export const calc_f_omega_a = ({
-	c_i = 0.05,
-	m = 1500,
-	a = 0,
+	c_i,
+	m,
+	a,
 }: {
-	c_i?: number; // mass correction factor for rotational inertia acceleration
-	m?: number; // mass in kg
-	a?: number; // acceleration in m/s^2
+	c_i: number; // mass correction factor for rotational inertia acceleration
+	m: number; // mass in kg
+	a: number; // acceleration in m/s^2
 }): number => {
 	return c_i * m * a;
 };
