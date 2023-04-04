@@ -236,7 +236,7 @@ export const p_total = ({
  * @param p_te the current traction power in W
  * @param n_gear gear efficiency
  * @param efficiency motor efficiency
- * @param p_motor_rated rated power of the motor in W
+ * @param p_motor_rated rated power of the motor in kW
  * @param regen_factor the speed-dependent regeneration factor
  * @param norm_factor the efficiency normalization factor
  * @param p_ac power draw by the accessories in W
@@ -277,6 +277,7 @@ export const calc_energy_consumption = ({
 		}),
 		p_ac,
 	});
+
 	if (p_te <= 0) {
 		// regeneration from the wheels
 		if (battery_out <= 0) {
@@ -285,28 +286,33 @@ export const calc_energy_consumption = ({
 				(p_te *
 					n_gear *
 					efficiency *
-					(Math.abs(motor_out) / p_motor_rated) *
+					((0.001 * Math.abs(motor_out)) / p_motor_rated) *
 					regen_factor *
 					norm_factor +
 					p_ac) *
+				(1 / 3600) *
 				Math.sqrt(rte)
 			);
 		} else {
 			// battery is discharging because accessories draw exceeds regen
 			return (
-				(p_te *
+				((p_te *
 					n_gear *
 					efficiency *
-					(Math.abs(motor_out) / p_motor_rated) *
+					((0.001 * Math.abs(motor_out)) / p_motor_rated) *
 					regen_factor *
 					norm_factor +
-					p_ac) /
+					p_ac) *
+					(1 / 3600)) /
 				Math.sqrt(rte)
 			);
 		}
 	} else {
 		return (
-			(p_te / (n_gear * efficiency * (Math.abs(motor_out) / p_motor_rated) * norm_factor) + p_ac) /
+			((p_te /
+				(n_gear * efficiency * ((0.001 * Math.abs(motor_out)) / p_motor_rated) * norm_factor) +
+				p_ac) *
+				(1 / 3600)) /
 			Math.sqrt(rte)
 		);
 	}
