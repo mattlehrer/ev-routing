@@ -27,7 +27,7 @@ export const calc_efficiency = ({
 	p_motor_rated: number;
 	motor_type: MotorType;
 }): number => {
-	const x = Math.abs(p_motor_out) / p_motor_rated;
+	const x = (0.001 * Math.abs(p_motor_out)) / p_motor_rated;
 
 	if (x < 0) {
 		throw new Error('x is negative');

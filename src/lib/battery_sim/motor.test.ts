@@ -13,7 +13,7 @@ describe('motor', () => {
 		it('is low at 25% power', () => {
 			expect(
 				calc_efficiency({
-					p_motor_out: 25,
+					p_motor_out: 25_000,
 					p_motor_rated: 100,
 					motor_type: 'induction_motor',
 				}),
@@ -23,7 +23,7 @@ describe('motor', () => {
 		it('is low at 50% power', () => {
 			expect(
 				calc_efficiency({
-					p_motor_out: 50,
+					p_motor_out: 50_000,
 					p_motor_rated: 100,
 					motor_type: 'induction_motor',
 				}),
@@ -33,7 +33,7 @@ describe('motor', () => {
 		it('is high at 100% power', () => {
 			expect(
 				calc_efficiency({
-					p_motor_out: 100,
+					p_motor_out: 100_000,
 					p_motor_rated: 100,
 					motor_type: 'induction_motor',
 				}),
@@ -43,7 +43,7 @@ describe('motor', () => {
 		it('is quite high at 75% power', () => {
 			expect(
 				calc_efficiency({
-					p_motor_out: 75,
+					p_motor_out: 75_000,
 					p_motor_rated: 100,
 					motor_type: 'induction_motor',
 				}),
@@ -52,13 +52,13 @@ describe('motor', () => {
 
 		it('is highest around 75% power for induction motors', () => {
 			const e75 = calc_efficiency({
-				p_motor_out: 75,
+				p_motor_out: 75_000,
 				p_motor_rated: 100,
 				motor_type: 'induction_motor',
 			});
 
 			const e100 = calc_efficiency({
-				p_motor_out: 100,
+				p_motor_out: 100_000,
 				p_motor_rated: 100,
 				motor_type: 'induction_motor',
 			});
@@ -68,13 +68,13 @@ describe('motor', () => {
 
 		it('is highest around 75% power for permanent magnet motors too', () => {
 			const e75 = calc_efficiency({
-				p_motor_out: 75,
+				p_motor_out: 75_000,
 				p_motor_rated: 100,
 				motor_type: 'permanent_magnet_motor',
 			});
 
 			const e100 = calc_efficiency({
-				p_motor_out: 100,
+				p_motor_out: 100_000,
 				p_motor_rated: 100,
 				motor_type: 'permanent_magnet_motor',
 			});
@@ -84,13 +84,13 @@ describe('motor', () => {
 
 		it('is about 98% of maximum efficiency at 100%', () => {
 			const e75 = calc_efficiency({
-				p_motor_out: 75,
+				p_motor_out: 75_000,
 				p_motor_rated: 100,
 				motor_type: 'permanent_magnet_motor',
 			});
 
 			const e100 = calc_efficiency({
-				p_motor_out: 100,
+				p_motor_out: 100_000,
 				p_motor_rated: 100,
 				motor_type: 'permanent_magnet_motor',
 			});
@@ -100,13 +100,13 @@ describe('motor', () => {
 
 		it('is about 98% of maximum efficiency at 50%', () => {
 			const e75 = calc_efficiency({
-				p_motor_out: 75,
+				p_motor_out: 75_000,
 				p_motor_rated: 100,
 				motor_type: 'permanent_magnet_motor',
 			});
 
 			const e50 = calc_efficiency({
-				p_motor_out: 50,
+				p_motor_out: 50_000,
 				p_motor_rated: 100,
 				motor_type: 'permanent_magnet_motor',
 			});
@@ -116,13 +116,13 @@ describe('motor', () => {
 
 		it('is higher for permanent_magnet_motor than for induction_motor', () => {
 			const induction = calc_efficiency({
-				p_motor_out: 75,
+				p_motor_out: 75_000,
 				p_motor_rated: 100,
 				motor_type: 'induction_motor',
 			});
 
 			const permanent = calc_efficiency({
-				p_motor_out: 75,
+				p_motor_out: 75_000,
 				p_motor_rated: 100,
 				motor_type: 'permanent_magnet_motor',
 			});

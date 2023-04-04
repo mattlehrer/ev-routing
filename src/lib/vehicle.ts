@@ -8,7 +8,7 @@ export type Vehicle = {
 
 	// motor
 	motor_type: MotorType;
-	p_motor_rated: number;
+	p_motor_rated: number; // rate power in kW
 	norm_factor: number;
 
 	// battery
