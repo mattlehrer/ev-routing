@@ -8,9 +8,8 @@
  *
  */
 
-import { p_motor_out } from './transmission';
-
-export type MotorType = 'induction_motor' | 'permanent_magnet_motor';
+import type { MotorType } from '$lib/vehicle';
+import { calc_p_motor_out } from './transmission';
 
 /**
  * load efficiency approximation
@@ -19,7 +18,7 @@ export type MotorType = 'induction_motor' | 'permanent_magnet_motor';
  * @param motor_type the type of motor, either 'induction_motor' or 'permanent_magnet_motor'
  * @returns the load efficiency of the motor
  */
-export const efficiency = ({
+export const calc_efficiency = ({
 	p_motor_out,
 	p_motor_rated,
 	motor_type,
@@ -100,7 +99,7 @@ export const efficiency = ({
  * @param p_motor_rated rated power of the motor in kW
  * @returns the efficiency normalization factor
  */
-export const norm_factor = (p_motor_rated: number): number => {
+export const calc_norm_factor = (p_motor_rated: number): number => {
 	if (p_motor_rated <= 0.75) return 0.817;
 	if (p_motor_rated <= 1.1) return 0.839;
 	if (p_motor_rated <= 1.5) return 0.855;
@@ -137,7 +136,7 @@ export const norm_factor = (p_motor_rated: number): number => {
  * @param p_te traction power in W
  * @returns the input power of the motor in W
  */
-export const p_motor_in = ({
+export const calc_p_motor_in = ({
 	p_motor_out,
 	regen_factor,
 	efficiency,
@@ -169,7 +168,7 @@ export const p_motor_in = ({
  * @param u2 the speed for maximum regneration in m/s
  * @returns the regeneration factor, between 0 and 1
  */
-export const regen_factor = ({
+export const calc_regen_factor = ({
 	u,
 	u1 = 1.39,
 	u2 = 4.72,
@@ -200,7 +199,7 @@ export const regen_factor = ({
  * @param p_ac power draw by the accessories in W
  * @returns the total battery change in power in W
  */
-export const p_battery_out = ({
+export const calc_p_battery_out = ({
 	p_motor_in,
 	p_ac,
 }: {
@@ -244,7 +243,7 @@ export const p_total = ({
  * @param rte the round trip efficiency factor for the battery
  * @returns the energy consumption in Wh in one second
  */
-export const energy_consumption = ({
+export const calc_energy_consumption = ({
 	p_te,
 	n_gear,
 	efficiency,
@@ -263,15 +262,13 @@ export const energy_consumption = ({
 	p_ac: number;
 	rte: number;
 }): number => {
-	const motor_out = p_motor_out({
+	const motor_out = calc_p_motor_out({
 		traction_power: p_te,
 		n_gear,
 	});
 
-	console.log({ motor_out });
-
-	const battery_out = p_battery_out({
-		p_motor_in: p_motor_in({
+	const battery_out = calc_p_battery_out({
+		p_motor_in: calc_p_motor_in({
 			p_motor_out: motor_out,
 			regen_factor,
 			efficiency,

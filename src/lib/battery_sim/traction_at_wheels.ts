@@ -16,7 +16,7 @@
  * @param v velocity in m/s
  * @returns force of aerodynamic drag in Newtons
  */
-export const f_ad = ({
+export const calc_f_ad = ({
 	rho = 1.225, // density of air in kg/m^3 at 15C
 	c_d = 0.315,
 	area = 2.755,
@@ -38,7 +38,7 @@ export const f_ad = ({
  * @param theta slope angle in radians
  * @returns force of rolling resistance in Newtons
  */
-export const f_rr = ({
+export const calc_f_rr = ({
 	mu_rr = 0.01,
 	m = 1500,
 	g = 9.81,
@@ -59,7 +59,7 @@ export const f_rr = ({
  * @param theta slope angle in radians
  * @returns hill climbing force in Newtons
  */
-export const f_hc = ({
+export const calc_f_hc = ({
 	m = 1500,
 	g = 9.81,
 	theta = 0,
@@ -77,7 +77,7 @@ export const f_hc = ({
  * @param a acceleration in m/s^2
  * @returns force of linear acceleration in Newtons
  */
-export const f_la = ({
+export const calc_f_la = ({
 	m = 1500,
 	a = 0,
 }: {
@@ -94,7 +94,7 @@ export const f_la = ({
  * @param a acceleration in m/s^2
  * @returns inertial force in Newtons
  */
-export const f_omega_a = ({
+export const calc_f_omega_a = ({
 	c_i = 0.05,
 	m = 1500,
 	a = 0,
@@ -115,7 +115,7 @@ export const f_omega_a = ({
  * @param f_omega_a inertial force in Newtons
  * @returns total tractive effort at the wheels in Newtons
  */
-export const f_te = ({
+export const calc_f_te = ({
 	f_ad,
 	f_rr,
 	f_hc,
@@ -137,7 +137,7 @@ export const f_te = ({
  * @param u car velocity in m/s
  * @returns traction power at the wheels in Watts
  */
-export const p_te = ({
+export const calc_p_te = ({
 	f_te,
 	u,
 }: {

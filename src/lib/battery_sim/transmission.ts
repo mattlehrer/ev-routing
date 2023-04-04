@@ -15,7 +15,7 @@
  * @param r_wheel wheel radius in m
  * @returns linear motor speed in m/s
  */
-export const omega_motor = ({
+export const calc_omega_motor = ({
 	g_ratio,
 	u_angular,
 	r_wheel,
@@ -35,7 +35,7 @@ export const omega_motor = ({
  * @param n_gear gear efficiency of the transmission system
  * @returns mechanical power in Watts
  */
-export const p_motor_out = ({
+export const calc_p_motor_out = ({
 	traction_power,
 	n_gear,
 }: {
@@ -56,7 +56,7 @@ export const p_motor_out = ({
  * @returns motor output torque in Nm
  * @throws Error if omega_motor is zero
  */
-export const t_motorout = ({
+export const calc_t_motorout = ({
 	p_motor_out,
 	omega_motor_speed,
 }: {

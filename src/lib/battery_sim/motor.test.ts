@@ -1,18 +1,18 @@
 import { describe, expect, it } from 'vitest';
 import {
-	efficiency,
-	energy_consumption,
-	norm_factor,
-	p_motor_in,
+	calc_efficiency,
+	calc_energy_consumption,
+	calc_norm_factor,
+	calc_p_motor_in,
+	calc_regen_factor,
 	p_total,
-	regen_factor,
 } from './motor';
 
 describe('motor', () => {
 	describe('the efficiency curve', () => {
 		it('is low at 25% power', () => {
 			expect(
-				efficiency({
+				calc_efficiency({
 					p_motor_out: 25,
 					p_motor_rated: 100,
 					motor_type: 'induction_motor',
@@ -22,7 +22,7 @@ describe('motor', () => {
 
 		it('is low at 50% power', () => {
 			expect(
-				efficiency({
+				calc_efficiency({
 					p_motor_out: 50,
 					p_motor_rated: 100,
 					motor_type: 'induction_motor',
@@ -32,7 +32,7 @@ describe('motor', () => {
 
 		it('is high at 100% power', () => {
 			expect(
-				efficiency({
+				calc_efficiency({
 					p_motor_out: 100,
 					p_motor_rated: 100,
 					motor_type: 'induction_motor',
@@ -42,7 +42,7 @@ describe('motor', () => {
 
 		it('is quite high at 75% power', () => {
 			expect(
-				efficiency({
+				calc_efficiency({
 					p_motor_out: 75,
 					p_motor_rated: 100,
 					motor_type: 'induction_motor',
@@ -51,13 +51,13 @@ describe('motor', () => {
 		});
 
 		it('is highest around 75% power for induction motors', () => {
-			const e75 = efficiency({
+			const e75 = calc_efficiency({
 				p_motor_out: 75,
 				p_motor_rated: 100,
 				motor_type: 'induction_motor',
 			});
 
-			const e100 = efficiency({
+			const e100 = calc_efficiency({
 				p_motor_out: 100,
 				p_motor_rated: 100,
 				motor_type: 'induction_motor',
@@ -67,13 +67,13 @@ describe('motor', () => {
 		});
 
 		it('is highest around 75% power for permanent magnet motors too', () => {
-			const e75 = efficiency({
+			const e75 = calc_efficiency({
 				p_motor_out: 75,
 				p_motor_rated: 100,
 				motor_type: 'permanent_magnet_motor',
 			});
 
-			const e100 = efficiency({
+			const e100 = calc_efficiency({
 				p_motor_out: 100,
 				p_motor_rated: 100,
 				motor_type: 'permanent_magnet_motor',
@@ -83,13 +83,13 @@ describe('motor', () => {
 		});
 
 		it('is about 98% of maximum efficiency at 100%', () => {
-			const e75 = efficiency({
+			const e75 = calc_efficiency({
 				p_motor_out: 75,
 				p_motor_rated: 100,
 				motor_type: 'permanent_magnet_motor',
 			});
 
-			const e100 = efficiency({
+			const e100 = calc_efficiency({
 				p_motor_out: 100,
 				p_motor_rated: 100,
 				motor_type: 'permanent_magnet_motor',
@@ -99,13 +99,13 @@ describe('motor', () => {
 		});
 
 		it('is about 98% of maximum efficiency at 50%', () => {
-			const e75 = efficiency({
+			const e75 = calc_efficiency({
 				p_motor_out: 75,
 				p_motor_rated: 100,
 				motor_type: 'permanent_magnet_motor',
 			});
 
-			const e50 = efficiency({
+			const e50 = calc_efficiency({
 				p_motor_out: 50,
 				p_motor_rated: 100,
 				motor_type: 'permanent_magnet_motor',
@@ -115,13 +115,13 @@ describe('motor', () => {
 		});
 
 		it('is higher for permanent_magnet_motor than for induction_motor', () => {
-			const induction = efficiency({
+			const induction = calc_efficiency({
 				p_motor_out: 75,
 				p_motor_rated: 100,
 				motor_type: 'induction_motor',
 			});
 
-			const permanent = efficiency({
+			const permanent = calc_efficiency({
 				p_motor_out: 75,
 				p_motor_rated: 100,
 				motor_type: 'permanent_magnet_motor',
@@ -133,22 +133,22 @@ describe('motor', () => {
 
 	describe('the normalization factor based on motor size', () => {
 		it('is 1 for a 200kW motor', () => {
-			expect(norm_factor(200)).toBe(1);
+			expect(calc_norm_factor(200)).toBe(1);
 		});
 
 		it('is 0.817 for a 0.5kW motor', () => {
-			expect(norm_factor(0.5)).toBe(0.817);
+			expect(calc_norm_factor(0.5)).toBe(0.817);
 		});
 
 		it('is 0.998 for a 150kW motor', () => {
-			expect(norm_factor(150)).toBe(0.998);
+			expect(calc_norm_factor(150)).toBe(0.998);
 		});
 	});
 
 	describe('the input power of the motor in W', () => {
 		it('is 0 for 0kW motor at 100% efficiency', () => {
 			expect(
-				p_motor_in({
+				calc_p_motor_in({
 					p_motor_out: 0,
 					regen_factor: 0,
 					efficiency: 1,
@@ -160,7 +160,7 @@ describe('motor', () => {
 
 		it('is ~55 for 50W output at 92% efficiency, .99 norm_factor', () => {
 			expect(
-				p_motor_in({
+				calc_p_motor_in({
 					p_motor_out: 50,
 					regen_factor: 0,
 					efficiency: 0.92,
@@ -171,7 +171,7 @@ describe('motor', () => {
 		});
 
 		it('does not change with different regen_factor in motor mode', () => {
-			const a = p_motor_in({
+			const a = calc_p_motor_in({
 				p_motor_out: 50,
 				regen_factor: 0.5,
 				efficiency: 0.92,
@@ -179,7 +179,7 @@ describe('motor', () => {
 				p_te: 100,
 			});
 
-			const b = p_motor_in({
+			const b = calc_p_motor_in({
 				p_motor_out: 50,
 				regen_factor: 0.75,
 				efficiency: 0.92,
@@ -192,7 +192,7 @@ describe('motor', () => {
 
 		it('is ~53 for 50W output at 94% efficiency, 1.0 norm_factor', () => {
 			expect(
-				p_motor_in({
+				calc_p_motor_in({
 					p_motor_out: 50,
 					regen_factor: 0,
 					efficiency: 0.94,
@@ -204,7 +204,7 @@ describe('motor', () => {
 
 		it('is 47 for 50W input at 94% efficiency, 1.0 norm_factor, 1.0 regen_factor', () => {
 			expect(
-				p_motor_in({
+				calc_p_motor_in({
 					p_motor_out: 50,
 					regen_factor: 1.0,
 					efficiency: 0.94,
@@ -215,7 +215,7 @@ describe('motor', () => {
 		});
 
 		it('increases with higher regen_factors in generator mode', () => {
-			const a = p_motor_in({
+			const a = calc_p_motor_in({
 				p_motor_out: 50,
 				regen_factor: 0.5,
 				efficiency: 0.92,
@@ -223,7 +223,7 @@ describe('motor', () => {
 				p_te: -100,
 			});
 
-			const b = p_motor_in({
+			const b = calc_p_motor_in({
 				p_motor_out: 50,
 				regen_factor: 0.75,
 				efficiency: 0.92,
@@ -236,7 +236,7 @@ describe('motor', () => {
 
 		it('is ~37.6 for 50W input at 94% efficiency, 1.0 norm_factor, 1.0 regen_factor', () => {
 			expect(
-				p_motor_in({
+				calc_p_motor_in({
 					p_motor_out: 50,
 					regen_factor: 0.8,
 					efficiency: 0.94,
@@ -248,7 +248,7 @@ describe('motor', () => {
 
 		it('throws if regen_factor is not between 0 and 1', () => {
 			expect(() =>
-				p_motor_in({
+				calc_p_motor_in({
 					p_motor_out: 50,
 					regen_factor: 1.1,
 					efficiency: 0.94,
@@ -260,7 +260,7 @@ describe('motor', () => {
 
 		it('throws if efficiency is not between 0 and 1', () => {
 			expect(() =>
-				p_motor_in({
+				calc_p_motor_in({
 					p_motor_out: 50,
 					regen_factor: 1.0,
 					efficiency: 1.1,
@@ -273,15 +273,15 @@ describe('motor', () => {
 
 	describe('the regeneration factor', () => {
 		it('is 0 for p_te of 0', () => {
-			expect(regen_factor({ u: 1.39 })).toBe(0);
+			expect(calc_regen_factor({ u: 1.39 })).toBe(0);
 		});
 
 		it('is 0.5 for p_te of 100', () => {
-			expect(regen_factor({ u: 1.39 + 3.33 / 2 })).toBeCloseTo(0.5);
+			expect(calc_regen_factor({ u: 1.39 + 3.33 / 2 })).toBeCloseTo(0.5);
 		});
 
 		it('is 1 above 4.72', () => {
-			expect(regen_factor({ u: 5 })).toBe(1);
+			expect(calc_regen_factor({ u: 5 })).toBe(1);
 		});
 	});
 
@@ -317,7 +317,7 @@ describe('motor', () => {
 	describe('the energy consumption from the battery in one second', () => {
 		it('can be 0', () => {
 			expect(
-				energy_consumption({
+				calc_energy_consumption({
 					p_te: 0,
 					n_gear: 0.97,
 					efficiency: 0.95,
@@ -332,7 +332,7 @@ describe('motor', () => {
 
 		it('is ~308 with only accessories drawing 300', () => {
 			expect(
-				energy_consumption({
+				calc_energy_consumption({
 					p_te: 0,
 					n_gear: 0.97,
 					efficiency: 0.95,
@@ -347,7 +347,7 @@ describe('motor', () => {
 
 		it('is ~308 with only accessories drawing 300', () => {
 			expect(
-				energy_consumption({
+				calc_energy_consumption({
 					p_te: -900,
 					n_gear: 0.97,
 					efficiency: 0.99,
