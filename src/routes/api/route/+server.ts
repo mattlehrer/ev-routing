@@ -34,9 +34,10 @@ export const POST = (async ({ request }) => {
 			}),
 		),
 	);
-	console.log({ route, power });
-	const totalPower = power.flat().reduce((a, b) => a + b, 0);
-	console.log({ totalPower });
+	// console.log({ route, power });
+	// const totalPower = power.flat().reduce((a, b) => a + b, 0);
+	// console.log({ totalPower });
+	console.log({ geojson: route.legs[0].steps });
 
 	return json({ route, power });
 }) satisfies RequestHandler;

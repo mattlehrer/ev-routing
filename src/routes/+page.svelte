@@ -8,6 +8,8 @@
 	import { formatDistance, formatDuration, formatLatLng } from '$lib/utils/formatters';
 	import type OSRM from '@project-osrm/osrm';
 
+	export let data: { origin: string; destination: string };
+
 	let origin: string | undefined;
 	let destination: string | undefined;
 	let originLatLng: [number, number];
@@ -77,10 +79,39 @@
 	let L: Map;
 
 	onMount(() => {
-		// if (leafletMap) leafletMap?.controls.zoom.setPosition('topright');
 		L = leafletMap.getMap();
 		L.zoomControl.setPosition('topright');
+
+		if (data) {
+			if (data.origin) {
+				origin = data.origin;
+				originLatLng = JSON.parse(decodeURI(data.origin));
+			}
+			if (data.destination) {
+				destination = data.destination;
+				destinationLatLng = JSON.parse(decodeURI(data.destination));
+			}
+		}
 	});
+
+	$: if (browser) {
+		const url = new URL(window.location.href);
+		if (origin) {
+			url.searchParams.set('origin', encodeURI(JSON.stringify(originLatLng)));
+		} else {
+			url.searchParams.delete('origin');
+		}
+		history.pushState({}, '', url);
+	}
+	$: if (browser) {
+		const url = new URL(window.location.href);
+		if (destination) {
+			url.searchParams.set('destination', encodeURI(JSON.stringify(destinationLatLng)));
+		} else {
+			url.searchParams.delete('destination');
+		}
+		history.pushState({}, '', url);
+	}
 
 	let pointer: [number, number] | undefined = undefined;
 
