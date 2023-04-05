@@ -2,12 +2,12 @@
 	import { browser } from '$app/environment';
 	import { PUBLIC_THUNDERFOREST_API_KEY } from '$env/static/public';
 	import { GeoJSON, LeafletMap, Marker, DivIcon, TileLayer } from 'svelte-leafletjs?client';
+	import { LatLng } from 'leaflet?client';
 	import type { Map } from 'leaflet';
 	import 'leaflet/dist/leaflet.css';
 	import { onMount } from 'svelte';
 	import { formatDistance, formatDuration, formatLatLng } from '$lib/utils/formatters';
 	import type OSRM from '@project-osrm/osrm';
-	import { LatLng } from 'leaflet?client';
 
 	export let data: {
 		olat: number;
@@ -19,8 +19,8 @@
 	let ready = false;
 	let origin: string | undefined;
 	let destination: string | undefined;
-	let originLatLng: [number, number];
-	let destinationLatLng: [number, number];
+	let originLatLng: [number, number] | undefined;
+	let destinationLatLng: [number, number] | undefined;
 	let routeData: OSRM.Route | undefined;
 	let hoveredStep: OSRM.RouteStep | undefined;
 	let hoveredStepLonLat: [number, number] | undefined;
@@ -34,7 +34,7 @@
 			destination = formatLatLng(e.detail.latlng);
 			destinationLatLng = [e.detail.latlng.lat, e.detail.latlng.lng];
 		}
-		if (origin && destination) {
+		if (originLatLng && destinationLatLng) {
 			await getRoute();
 			// zoom to route
 			L.fitBounds([originLatLng, destinationLatLng]);
@@ -100,7 +100,7 @@
 				destination = formatLatLng(new LatLng(data.dlat, data.dlon));
 			}
 		}
-		if (origin && destination) {
+		if (originLatLng && destinationLatLng) {
 			getRoute();
 			L.fitBounds([originLatLng, destinationLatLng]);
 		}
@@ -118,6 +118,7 @@
 		const url = new URL(window.location.href);
 		url.searchParams.delete('olat');
 		url.searchParams.delete('olon');
+		history.pushState({}, '', url);
 	}
 	$: if (ready && destinationLatLng) {
 		const url = new URL(window.location.href);
@@ -224,6 +225,7 @@
 						class="absolute right-2 top-2 text-red-500 opacity-30"
 						on:click={() => {
 							origin = undefined;
+							originLatLng = undefined;
 							routeData = undefined;
 						}}
 					>
@@ -259,6 +261,7 @@
 						class="absolute right-2 top-2 text-red-500 opacity-30"
 						on:click={() => {
 							destination = undefined;
+							destinationLatLng = undefined;
 							routeData = undefined;
 						}}
 					>
