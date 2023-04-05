@@ -2,13 +2,14 @@ import type { PageLoad } from './$types';
 
 export const load = (async ({ url }) => {
 	const searchParams = url.searchParams;
-	console.log({ searchParams });
-	const originParam = searchParams.get('origin');
-	// const origin = JSON.parse(decodeURI(originParam || ''));
-	const destinationParam = searchParams.get('destination');
-	// const destination = JSON.parse(decodeURI(destinationParam || ''));
+	const olatParam = searchParams.get('olat');
+	const olonParam = searchParams.get('olon');
+	const dlatParam = searchParams.get('dlat');
+	const dlonParam = searchParams.get('dlon');
 	return {
-		origin: originParam && JSON.parse(decodeURI(originParam || '')),
-		destination: destinationParam && JSON.parse(decodeURI(destinationParam || '')),
+		olat: olatParam && Number(JSON.parse(decodeURI(olatParam || ''))),
+		olon: olonParam && Number(JSON.parse(decodeURI(olonParam || ''))),
+		dlat: dlatParam && Number(JSON.parse(decodeURI(dlatParam || ''))),
+		dlon: dlonParam && Number(JSON.parse(decodeURI(dlonParam || ''))),
 	};
 }) satisfies PageLoad;

@@ -7,9 +7,16 @@
 	import { onMount } from 'svelte';
 	import { formatDistance, formatDuration, formatLatLng } from '$lib/utils/formatters';
 	import type OSRM from '@project-osrm/osrm';
+	import { LatLng } from 'leaflet?client';
 
-	export let data: { origin: string; destination: string };
+	export let data: {
+		olat: number;
+		olon: number;
+		dlat: number;
+		dlon: number;
+	};
 
+	let ready = false;
 	let origin: string | undefined;
 	let destination: string | undefined;
 	let originLatLng: [number, number];
@@ -83,33 +90,46 @@
 		L.zoomControl.setPosition('topright');
 
 		if (data) {
-			if (data.origin) {
-				origin = data.origin;
-				originLatLng = JSON.parse(decodeURI(data.origin));
+			console.log({ data });
+			if (data.olat && data.olon) {
+				originLatLng = [data.olat, data.olon];
+				origin = formatLatLng(new LatLng(data.olat, data.olon));
 			}
-			if (data.destination) {
-				destination = data.destination;
-				destinationLatLng = JSON.parse(decodeURI(data.destination));
+			if (data.dlat && data.dlon) {
+				destinationLatLng = [data.dlat, data.dlon];
+				destination = formatLatLng(new LatLng(data.dlat, data.dlon));
 			}
 		}
+		if (origin && destination) {
+			getRoute();
+			L.fitBounds([originLatLng, destinationLatLng]);
+		}
+		ready = true;
 	});
 
-	$: if (browser) {
+	$: if (ready && originLatLng) {
 		const url = new URL(window.location.href);
-		if (origin) {
-			url.searchParams.set('origin', encodeURI(JSON.stringify(originLatLng)));
-		} else {
-			url.searchParams.delete('origin');
-		}
+		const [olat, olon] = originLatLng;
+		url.searchParams.set('olat', encodeURI(JSON.stringify(olat)));
+		url.searchParams.set('olon', encodeURI(JSON.stringify(olon)));
 		history.pushState({}, '', url);
 	}
-	$: if (browser) {
+	$: if (ready && !originLatLng) {
 		const url = new URL(window.location.href);
-		if (destination) {
-			url.searchParams.set('destination', encodeURI(JSON.stringify(destinationLatLng)));
-		} else {
-			url.searchParams.delete('destination');
-		}
+		url.searchParams.delete('olat');
+		url.searchParams.delete('olon');
+	}
+	$: if (ready && destinationLatLng) {
+		const url = new URL(window.location.href);
+		const [dlat, dlon] = destinationLatLng;
+		url.searchParams.set('dlat', encodeURI(JSON.stringify(dlat)));
+		url.searchParams.set('dlon', encodeURI(JSON.stringify(dlon)));
+		history.pushState({}, '', url);
+	}
+	$: if (ready && !destinationLatLng) {
+		const url = new URL(window.location.href);
+		url.searchParams.delete('dlat');
+		url.searchParams.delete('dlon');
 		history.pushState({}, '', url);
 	}
 
