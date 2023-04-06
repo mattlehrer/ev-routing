@@ -4,7 +4,7 @@ const osrm = new OSRM({ path: 'osrmdata/sweden-latest.osrm', algorithm: 'MLD' })
 export function getRoute(data: {
 	origin: [number, number];
 	destination: [number, number];
-}): Promise<OSRM.Route> {
+}): Promise<Route> {
 	return new Promise((resolve, reject) => {
 		console.log({ data });
 		const [olat, olon] = data.origin;
@@ -32,4 +32,16 @@ export function getRoute(data: {
 			},
 		);
 	});
+}
+
+export interface Route extends OSRM.Route {
+	legs: RouteLeg[];
+}
+
+export interface RouteLeg extends OSRM.RouteLeg {
+	steps: RouteStep[];
+}
+
+export interface RouteStep extends OSRM.RouteStep {
+	power?: number;
 }

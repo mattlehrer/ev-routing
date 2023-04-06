@@ -7,9 +7,9 @@
 	import 'leaflet/dist/leaflet.css';
 	import { onMount } from 'svelte';
 	import { formatDistance, formatDuration, formatLatLng } from '$lib/utils/formatters';
-	import type OSRM from '@project-osrm/osrm';
 	import { pinIcon } from '$lib/assets/pin';
 	import { mapOptions, tileLayerOptions, tileUrl } from '$lib/map';
+	import type { Route, RouteStep } from '$lib/route';
 
 	export let data: {
 		olat: number;
@@ -23,8 +23,8 @@
 	let destination: string | undefined;
 	let originLatLng: [number, number] | undefined;
 	let destinationLatLng: [number, number] | undefined;
-	let routeData: OSRM.Route | undefined;
-	let hoveredStep: OSRM.RouteStep | undefined;
+	let routeData: Route | undefined;
+	let hoveredStep: RouteStep | undefined;
 	let hoveredStepLonLat: [number, number] | undefined;
 
 	async function handleClick(e: CustomEvent) {
@@ -43,7 +43,7 @@
 		}
 	}
 
-	async function handleStepHover(step: OSRM.RouteStep) {
+	async function handleStepHover(step: RouteStep) {
 		hoveredStep = step;
 		const [lat, lon] = hoveredStep.maneuver.location;
 		hoveredStepLonLat = [lon, lat];
