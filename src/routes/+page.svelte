@@ -8,6 +8,7 @@
 	import { onMount } from 'svelte';
 	import { formatDistance, formatDuration, formatLatLng } from '$lib/utils/formatters';
 	import type OSRM from '@project-osrm/osrm';
+	import { pinIcon } from '$lib/assets/pin';
 
 	export let data: {
 		olat: number;
@@ -145,12 +146,6 @@
 			pointer = undefined;
 		}, 1000);
 	};
-
-	const pinIcon = (color: string) => `
-		<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="currentColor" class="absolute w-10 h-10 -left-5 -top-10 ${color}">
-	  <path fill-rule="evenodd" d="M11.54 22.351l.07.04.028.016a.76.76 0 00.723 0l.028-.015.071-.041a16.975 16.975 0 001.144-.742 19.58 19.58 0 002.683-2.282c1.944-1.99 3.963-4.98 3.963-8.827a8.25 8.25 0 00-16.5 0c0 3.846 2.02 6.837 3.963 8.827a19.58 19.58 0 002.682 2.282 16.975 16.975 0 001.145.742zM12 13.5a3 3 0 100-6 3 3 0 000 6z" clip-rule="evenodd" />
-	</svg>
-	`;
 
 	const originIcon = pinIcon('text-green-700');
 	const destinationIcon = pinIcon('text-red-700');
