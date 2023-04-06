@@ -1,4 +1,5 @@
 import { calc_route_segment_battery_power_flow } from '$lib/battery_sim/route_segment_battery_consumption';
+import { getChargingStationsAlongRoute } from '$lib/charging_stations';
 import { getRoute } from '$lib/route';
 import { TestVehicle } from '$lib/vehicles/TestVehicle';
 import type OSRM from '@project-osrm/osrm';
@@ -49,7 +50,13 @@ export const POST = (async ({ request }) => {
 	// console.log({ totalPower });
 	// console.log({ geojson: route.legs[0].steps });
 
-	return json({ route, power });
+	// get charging stations
+	const stationData = await getChargingStationsAlongRoute({
+		origin: data.origin,
+		destination: data.destination,
+	});
+
+	return json({ route, power, stations: stationData.stations });
 }) satisfies RequestHandler;
 
 interface RouteStep extends OSRM.RouteStep {
