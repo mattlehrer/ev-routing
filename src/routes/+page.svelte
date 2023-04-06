@@ -1,6 +1,5 @@
 <script lang="ts">
 	import { browser } from '$app/environment';
-	import { PUBLIC_THUNDERFOREST_API_KEY } from '$env/static/public';
 	import { GeoJSON, LeafletMap, Marker, DivIcon, TileLayer } from 'svelte-leafletjs?client';
 	import { LatLng } from 'leaflet?client';
 	import type { Map } from 'leaflet';

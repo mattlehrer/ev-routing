@@ -1,3 +1,5 @@
+// import { PUBLIC_THUNDERFOREST_API_KEY } from '$env/static/public';
+
 export const mapOptions = {
 	center: [58.83, 14.8],
 	zoom: 6,
