@@ -1,6 +1,7 @@
 import { calc_route_segment_battery_power_flow } from '$lib/battery_sim/route_segment_battery_consumption';
 import { getRoute } from '$lib/route';
 import { TestVehicle } from '$lib/vehicles/TestVehicle';
+import type OSRM from '@project-osrm/osrm';
 import { error, json } from '@sveltejs/kit';
 import type { RequestHandler } from './$types';
 
@@ -18,7 +19,7 @@ export const POST = (async ({ request }) => {
 
 	console.time('calc_route_segment_battery_power_flow');
 	route.legs.forEach((leg) => {
-		leg.steps.forEach((step) => {
+		leg.steps.forEach((step: RouteStep) => {
 			step.power = calc_route_segment_battery_power_flow({
 				distance: step.distance,
 				duration: step.duration,
@@ -50,3 +51,7 @@ export const POST = (async ({ request }) => {
 
 	return json({ route, power });
 }) satisfies RequestHandler;
+
+interface RouteStep extends OSRM.RouteStep {
+	power?: number;
+}
