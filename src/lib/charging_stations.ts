@@ -69,8 +69,8 @@ export async function getChargingStationsAlongRoute({
 		`${CHARGING_STATION_API_BASE_URL}/route?from=${originData[0].title}&fromlat=${originData[0].location.lat}&fromlng=${originData[0].location.lng}&fromcc=&via=&vialat=&vialng=&to=${destinationData[0].title}&tolat=${destinationData[0].location.lat}&tolng=${destinationData[0].location.lng}&preference=recommended&detour=${maxDetour}&minspeed=3&maxspeed=6`,
 		options,
 	);
-	const routeData: ChargingStationAPIRouteResponse = await routeRes.json();
-	return routeData;
+	const stationData: ChargingStationAPIRouteResponse = await routeRes.json();
+	return stationData;
 }
 
 export type ChargingStationAPIRouteResponse = {
