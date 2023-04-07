@@ -64,12 +64,12 @@
 				destination: destinationLatLng,
 			}),
 		});
-		const data = await res.json();
-		stationData = data.stations;
-		routeData = data.route;
-		totalPower = data.totalPower;
+		const json = await res.json();
+		stationData = json.stations;
+		routeData = json.route;
+		totalPower = json.totalPower;
 		// console.log(routeData);
-		console.log(data);
+		console.log(json);
 	}
 
 	let leafletMap: { getMap(): Map };
