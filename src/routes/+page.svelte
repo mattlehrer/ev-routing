@@ -2,13 +2,15 @@
 	import { browser } from '$app/environment';
 	import { GeoJSON, LeafletMap, Marker, DivIcon, TileLayer } from 'svelte-leafletjs?client';
 	import { LatLng } from 'leaflet?client';
-	import type { Map } from 'leaflet';
+	import type { Map } from 'leaflet?client';
 	import 'leaflet/dist/leaflet.css';
 	import { onMount } from 'svelte';
-	import { formatDistance, formatDuration, formatLatLng } from '$lib/utils/formatters';
+	import { formatDistance, formatDuration, formatLatLng, formatPower } from '$lib/utils/formatters';
 	import { pinIcon } from '$lib/assets/pin';
 	import { mapOptions, tileLayerOptions, tileUrl } from '$lib/map';
 	import type { Route, RouteStep } from '$lib/route';
+	import type { ChargingStationAPIRouteResponse } from '$lib/charging_stations';
+	import { evcsIcon } from '$lib/assets/charging_station_symbol';
 
 	export let data: {
 		olat: number;
@@ -23,6 +25,8 @@
 	let originLatLng: [number, number] | undefined;
 	let destinationLatLng: [number, number] | undefined;
 	let routeData: Route | undefined;
+	let stationData: ChargingStationAPIRouteResponse['stations'] | undefined;
+	let totalPower: number | undefined;
 	let hoveredStep: RouteStep | undefined;
 	let hoveredStepLonLat: [number, number] | undefined;
 
@@ -61,7 +65,9 @@
 			}),
 		});
 		const data = await res.json();
+		stationData = data.stations;
 		routeData = data.route;
+		totalPower = data.totalPower;
 		// console.log(routeData);
 		console.log(data);
 	}
@@ -180,6 +186,16 @@
 						/>
 					{/if}
 				{/if}
+				{#if stationData && stationData.length > 0}
+					{#each stationData as station}
+						<Marker
+							latLng={[station.location.latitude, station.location.longitude]}
+							options={{ title: JSON.stringify(station), bubblingMouseEvents: false }}
+						>
+							<DivIcon options={{ html: evcsIcon('text-green-500') }} />
+						</Marker>
+					{/each}
+				{/if}
 			</LeafletMap>
 		{/if}
 	</div>
@@ -272,6 +288,9 @@
 								{/if}
 								<p>{formatDistance(routeData.distance)}</p>
 								<p>{formatDuration(routeData.duration)}</p>
+								{#if totalPower}
+									<p>{formatPower(totalPower)}</p>
+								{/if}
 								{#each routeData.legs as leg}
 									<div class="mt-8">
 										<!-- <h3 class="text-base">
@@ -290,7 +309,9 @@
 													{step.maneuver.modifier ?? ''}
 												</p>
 												<p>{step.name} for {formatDistance(step.distance)}</p>
-												<p>using {step.power} Wh</p>
+												{#if step.power}
+													<p>using {formatPower(step.power)}</p>
+												{/if}
 											</div>
 										{/each}
 									</div>

@@ -20,3 +20,13 @@ export function formatDistance(distance: number) {
 export function formatDuration(duration: number) {
 	return humanizeDuration(duration * 1000, { units: ['h', 'm'], round: true });
 }
+
+export function formatPower(wH: number) {
+	return (
+		new Intl.NumberFormat(undefined, {
+			style: 'decimal',
+			unitDisplay: 'short',
+			maximumFractionDigits: 1,
+		}).format(wH) + ' Wh'
+	);
+}
