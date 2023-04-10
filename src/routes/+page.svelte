@@ -5,6 +5,7 @@
 	import type { Map } from 'leaflet?client';
 	import 'leaflet/dist/leaflet.css';
 	import { onMount } from 'svelte';
+	import { enhance } from '$app/forms';
 	import { formatDistance, formatDuration, formatLatLng, formatPower } from '$lib/utils/formatters';
 	import { pinIcon } from '$lib/assets/pin';
 	import { mapOptions, tileLayerOptions, tileUrl } from '$lib/map';
@@ -17,6 +18,13 @@
 		olon: number;
 		dlat: number;
 		dlon: number;
+		route: Route | undefined;
+		totalPower: number;
+		streamed:
+			| {
+					stationData: ChargingStationAPIRouteResponse;
+			  }
+			| undefined;
 	};
 
 	let ready = false;
@@ -24,9 +32,8 @@
 	let destination: string | undefined;
 	let originLatLng: [number, number] | undefined;
 	let destinationLatLng: [number, number] | undefined;
-	let routeData: Route | undefined;
-	let stationData: ChargingStationAPIRouteResponse['stations'] | undefined;
-	let totalPower: number | undefined;
+	$: routeData = data.route;
+	$: totalPower = data.totalPower;
 	let hoveredStep: RouteStep | undefined;
 	let hoveredStepLonLat: [number, number] | undefined;
 
@@ -39,11 +46,6 @@
 			destination = formatLatLng(e.detail.latlng);
 			destinationLatLng = [e.detail.latlng.lat, e.detail.latlng.lng];
 		}
-		if (originLatLng && destinationLatLng) {
-			await getRoute();
-			// zoom to route
-			L.fitBounds([originLatLng, destinationLatLng]);
-		}
 	}
 
 	async function handleStepHover(step: RouteStep) {
@@ -51,25 +53,6 @@
 		const [lat, lon] = hoveredStep.maneuver.location;
 		hoveredStepLonLat = [lon, lat];
 		if (hoveredStep) L.panTo([lon, lat], { duration: 0.5 });
-	}
-
-	async function getRoute() {
-		const res = await fetch('/api/route', {
-			method: 'POST',
-			headers: {
-				'Content-Type': 'application/json',
-			},
-			body: JSON.stringify({
-				origin: originLatLng,
-				destination: destinationLatLng,
-			}),
-		});
-		const json = await res.json();
-		stationData = json.stations;
-		routeData = json.route;
-		totalPower = json.totalPower;
-		// console.log(routeData);
-		console.log(json);
 	}
 
 	let leafletMap: { getMap(): Map };
@@ -91,7 +74,6 @@
 			}
 		}
 		if (originLatLng && destinationLatLng) {
-			getRoute();
 			L.fitBounds([originLatLng, destinationLatLng]);
 		}
 		ready = true;
@@ -186,8 +168,11 @@
 						/>
 					{/if}
 				{/if}
-				{#if stationData && stationData.length > 0}
-					{#each stationData as station}
+				{#await data.streamed?.stationData}
+					Loading...
+				{:then json}
+					{@const stations = json?.stations ?? []}
+					{#each stations as station}
 						<Marker
 							latLng={[station.location.latitude, station.location.longitude]}
 							options={{ title: JSON.stringify(station), bubblingMouseEvents: false }}
@@ -195,85 +180,107 @@
 							<DivIcon options={{ html: evcsIcon('text-green-500') }} />
 						</Marker>
 					{/each}
-				{/if}
+				{/await}
 			</LeafletMap>
 		{/if}
 	</div>
 
 	<div id="route" class="absolute left-0 top-0 z-10 w-64 p-3">
 		<div class="isolate -space-y-px rounded-md shadow-sm">
-			<div
-				class="relative rounded-md rounded-b-none bg-white px-3 pb-1.5 pt-2.5 ring-1 ring-inset ring-gray-300 focus-within:z-10 focus-within:ring-2 focus-within:ring-indigo-600"
+			<form
+				method="POST"
+				use:enhance={() => {
+					return async ({ update }) => {
+						await update({ reset: false });
+					};
+				}}
 			>
-				<label for="origin" class="block text-xs font-medium text-gray-900">Origin</label>
-				<input
-					type="text"
-					name="origin"
-					id="origin"
-					bind:value={origin}
-					class="block w-full border-0 p-0 text-gray-900 placeholder:text-gray-400 focus:ring-0 sm:text-sm sm:leading-6"
-					placeholder="Click the map to get started"
-				/>
-				{#if origin}
-					<button
-						class="absolute right-2 top-2 text-red-500 opacity-30"
-						on:click={() => {
-							origin = undefined;
-							originLatLng = undefined;
-							routeData = undefined;
-						}}
-					>
-						<svg
-							xmlns="http://www.w3.org/2000/svg"
-							viewBox="0 0 20 20"
-							fill="currentColor"
-							class="h-5 w-5"
+				<div
+					class="relative rounded-md rounded-b-none bg-white px-3 pb-1.5 pt-2.5 ring-1 ring-inset ring-gray-300 focus-within:z-10 focus-within:ring-2 focus-within:ring-indigo-600"
+				>
+					<label for="origin" class="block text-xs font-medium text-gray-900">Origin</label>
+					<input
+						type="text"
+						name="origin"
+						id="origin"
+						bind:value={origin}
+						class="block w-full border-0 p-0 text-gray-900 placeholder:text-gray-400 focus:ring-0 sm:text-sm sm:leading-6"
+						placeholder="Click the map to get started"
+					/>
+					{#if origin}
+						<button
+							class="absolute right-2 top-2 text-red-500 opacity-30"
+							on:click={() => {
+								origin = undefined;
+								originLatLng = undefined;
+								data.route = undefined;
+								routeData = undefined;
+								data.streamed = undefined;
+							}}
 						>
-							<path
-								fill-rule="evenodd"
-								d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z"
-								clip-rule="evenodd"
-							/>
-						</svg>
-					</button>
-				{/if}
-			</div>
-			<div
-				class="relative rounded-md rounded-t-none bg-white px-3 pb-1.5 pt-2.5 ring-1 ring-inset ring-gray-300 focus-within:z-10 focus-within:ring-2 focus-within:ring-indigo-600"
-			>
-				<label for="destination" class="block text-xs font-medium text-gray-900">Destination</label>
-				<input
-					type="text"
-					name="destination"
-					id="destination"
-					bind:value={destination}
-					class="block w-full border-0 p-0 text-gray-900 placeholder:text-gray-400 focus:ring-0 sm:text-sm sm:leading-6"
-					placeholder="Click the map to get started"
-				/>
-				{#if destination}
-					<button
-						class="absolute right-2 top-2 text-red-500 opacity-30"
-						on:click={() => {
-							destination = undefined;
-							destinationLatLng = undefined;
-							routeData = undefined;
-						}}
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								viewBox="0 0 20 20"
+								fill="currentColor"
+								class="h-5 w-5"
+							>
+								<path
+									fill-rule="evenodd"
+									d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z"
+									clip-rule="evenodd"
+								/>
+							</svg>
+						</button>
+					{/if}
+				</div>
+				<div
+					class="relative bg-white px-3 pb-1.5 pt-2.5 ring-1 ring-inset ring-gray-300 focus-within:z-10 focus-within:ring-2 focus-within:ring-indigo-600"
+				>
+					<label for="destination" class="block text-xs font-medium text-gray-900"
+						>Destination</label
 					>
-						<svg
-							xmlns="http://www.w3.org/2000/svg"
-							viewBox="0 0 20 20"
-							fill="currentColor"
-							class="h-5 w-5"
+					<input
+						type="text"
+						name="destination"
+						id="destination"
+						bind:value={destination}
+						class="block w-full border-0 p-0 text-gray-900 placeholder:text-gray-400 focus:ring-0 sm:text-sm sm:leading-6"
+						placeholder="Click the map to get started"
+					/>
+					{#if destination}
+						<button
+							class="absolute right-2 top-2 text-red-500 opacity-30"
+							on:click={() => {
+								destination = undefined;
+								destinationLatLng = undefined;
+								data.route = undefined;
+								routeData = undefined;
+								data.streamed = undefined;
+							}}
 						>
-							<path
-								fill-rule="evenodd"
-								d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z"
-								clip-rule="evenodd"
-							/>
-						</svg>
-					</button>
-				{/if}
-			</div>
+							<svg
+								xmlns="http://www.w3.org/2000/svg"
+								viewBox="0 0 20 20"
+								fill="currentColor"
+								class="h-5 w-5"
+							>
+								<path
+									fill-rule="evenodd"
+									d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.28 7.22a.75.75 0 00-1.06 1.06L8.94 10l-1.72 1.72a.75.75 0 101.06 1.06L10 11.06l1.72 1.72a.75.75 0 101.06-1.06L11.06 10l1.72-1.72a.75.75 0 00-1.06-1.06L10 8.94 8.28 7.22z"
+									clip-rule="evenodd"
+								/>
+							</svg>
+						</button>
+					{/if}
+				</div>
+				<input type="hidden" name="originLatLng" value={JSON.stringify(originLatLng)} />
+				<input type="hidden" name="destinationLatLng" value={JSON.stringify(destinationLatLng)} />
+
+				<button
+					class="w-full rounded-md rounded-t-none bg-green-700 px-8 py-3 text-gray-50"
+					type="submit">Get Route</button
+				>
+			</form>
 
 			<div class="max-h-full py-4">
 				<div
