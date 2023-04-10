@@ -62,13 +62,21 @@ export async function getChargingStationsAlongRoute({
 	}
 
 	// console.log({ originData, destinationData });
-	console.log(JSON.stringify(originData, null, 2));
-	console.log(JSON.stringify(destinationData, null, 2));
+	// console.log(JSON.stringify(originData, null, 2));
+	// console.log(JSON.stringify(destinationData, null, 2));
 
 	const routeRes = await fetch(
 		`${CHARGING_STATION_API_BASE_URL}/route?from=${originData[0].title}&fromlat=${originData[0].location.lat}&fromlng=${originData[0].location.lng}&fromcc=&via=&vialat=&vialng=&to=${destinationData[0].title}&tolat=${destinationData[0].location.lat}&tolng=${destinationData[0].location.lng}&preference=recommended&detour=${maxDetour}&minspeed=3&maxspeed=6`,
 		options,
 	);
+
+	let stationData: ChargingStationAPIRouteResponse;
+	try {
+		stationData = await routeRes.json();
+	} catch (err) {
+		console.error(err);
+		throw error(500, 'Bad response from Charging Station API');
+	}
 	const stationData: ChargingStationAPIRouteResponse = await routeRes.json();
 	return stationData;
 }
