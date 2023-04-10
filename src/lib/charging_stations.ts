@@ -6,7 +6,7 @@ import { placeData } from './place_data';
 export async function getChargingStationsAlongRoute({
 	origin,
 	destination,
-	maxDetour = 4,
+	maxDetour = 8,
 }: {
 	origin: LatLonPair;
 	destination: LatLonPair;
