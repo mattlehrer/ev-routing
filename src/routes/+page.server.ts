@@ -48,7 +48,7 @@ export const load = (async ({ url }) => {
 				getChargingStationsAlongRoute({
 					origin,
 					destination,
-					getPricing: false,
+					getPricing: true,
 				}),
 			// three: new Promise((fulfil) => {
 			// 	setTimeout(() => {
