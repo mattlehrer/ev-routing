@@ -5,7 +5,6 @@ import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 
 export const load = (async ({ url }) => {
-	console.log('running load');
 	const searchParams = url.searchParams;
 	const olatParam = searchParams.get('olat');
 	const olonParam = searchParams.get('olon');
@@ -49,7 +48,7 @@ export const load = (async ({ url }) => {
 				getChargingStationsAlongRoute({
 					origin,
 					destination,
-					getPricing: true,
+					getPricing: false,
 				}),
 			// three: new Promise((fulfil) => {
 			// 	setTimeout(() => {
