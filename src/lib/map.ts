@@ -6,7 +6,7 @@ export const mapOptions = {
 	// preferCanvas: true,
 };
 // const tileUrl = `https://tile.thunderforest.com/landscape/{z}/{x}/{y}.png?apikey=${PUBLIC_THUNDERFOREST_API_KEY}`; // shows some elevation details
-// const tileUrl = `https://tile.thunderforest.com/atlas/{z}/{x}/{y}.png?apikey=${PUBLIC_THUNDERFOREST_API_KEY}`;
+// export const tileUrl = `https://tile.thunderforest.com/atlas/{z}/{x}/{y}.png?apikey=${PUBLIC_THUNDERFOREST_API_KEY}`;
 export const tileUrl = 'https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
 export const tileLayerOptions = {
 	minZoom: 0,
