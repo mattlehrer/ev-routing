@@ -1,4 +1,5 @@
 import { calc_route_segment_battery_power_flow } from '$lib/battery_sim/route_segment_battery_consumption';
+import { getChargingStationsAlongRoute } from '$lib/charging_stations';
 import { getRoute } from '$lib/route';
 import { TestVehicle } from '$lib/vehicles/TestVehicle';
 import { error, json } from '@sveltejs/kit';
@@ -37,11 +38,11 @@ export const POST = (async ({ request }) => {
 	// console.log({ geojson: route.legs[0].steps });
 
 	// get charging stations
-	// const stationData = await getChargingStationsAlongRoute({
-	// 	origin: data.origin,
-	// 	destination: data.destination,
-	// });
-	const stationData = { stations: [] };
+	const stationData = await getChargingStationsAlongRoute({
+		origin: data.origin,
+		destination: data.destination,
+	});
+	// const stationData = { stations: [] };
 
-	return json({ route, stations: stationData.stations, totalPower });
+	return json({ route, stations: stationData, totalPower });
 }) satisfies RequestHandler;
