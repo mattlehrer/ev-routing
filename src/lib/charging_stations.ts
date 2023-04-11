@@ -27,7 +27,7 @@ export async function getChargingStationsAlongRoute({
 			chargingStationAPIFetchOptions,
 		);
 		originData = await originRes.json();
-		if (!originData) throw error(500, 'Bad response from Charging Station API');
+		if (!originData) throw error(500, 'Bad response from Charging Station API for origin');
 		placeData.set(origin, originData);
 	}
 
@@ -38,7 +38,8 @@ export async function getChargingStationsAlongRoute({
 			chargingStationAPIFetchOptions,
 		);
 		destinationData = await destinationRes.json();
-		if (!destinationData) throw error(500, 'Bad response from Charging Station API');
+		if (!destinationData)
+			throw error(500, 'Bad response from Charging Station API for destination');
 		placeData.set(destination, destinationData);
 	}
 
@@ -46,17 +47,17 @@ export async function getChargingStationsAlongRoute({
 	// console.log(JSON.stringify(originData, null, 2));
 	// console.log(JSON.stringify(destinationData, null, 2));
 
-	const routeRes = await fetch(
-		`${CHARGING_STATION_API_BASE_URL}/route?from=${originData[0].title}&fromlat=${originData[0].location.lat}&fromlng=${originData[0].location.lng}&fromcc=&via=&vialat=&vialng=&to=${destinationData[0].title}&tolat=${destinationData[0].location.lat}&tolng=${destinationData[0].location.lng}&preference=recommended&detour=${maxDetour}&minspeed=3&maxspeed=6`,
-		chargingStationAPIFetchOptions,
-	);
-
 	let stationData: ChargingStationAPIRouteResponse;
+
 	try {
+		const routeRes = await fetch(
+			`${CHARGING_STATION_API_BASE_URL}/route?from=${originData[0].title}&fromlat=${originData[0].location.lat}&fromlng=${originData[0].location.lng}&fromcc=&via=&vialat=&vialng=&to=${destinationData[0].title}&tolat=${destinationData[0].location.lat}&tolng=${destinationData[0].location.lng}&preference=recommended&detour=${maxDetour}&minspeed=3&maxspeed=6`,
+			chargingStationAPIFetchOptions,
+		);
 		stationData = await routeRes.json();
 	} catch (err) {
 		console.error(err);
-		throw error(500, 'Bad response from Charging Station API');
+		throw error(500, 'Bad response from Charging Station API for route');
 	}
 
 	if (getPricing) {
