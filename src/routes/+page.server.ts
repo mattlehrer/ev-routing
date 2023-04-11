@@ -49,6 +49,7 @@ export const load = (async ({ url }) => {
 				getChargingStationsAlongRoute({
 					origin,
 					destination,
+					getPricing: true,
 				}),
 			// three: new Promise((fulfil) => {
 			// 	setTimeout(() => {
