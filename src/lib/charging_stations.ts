@@ -71,7 +71,7 @@ export async function getChargingStationsAlongRoute({
 export async function getPricingForChargingStations(
 	stations: ChargingStationAPIRouteResponse['stations'],
 ) {
-	const stationSlugs = stations.map((station) => station.slug).slice(0, 5);
+	const stationSlugs = stations.map((station) => station.slug).slice(0, 1);
 	const stationResponses = await Promise.all(
 		stationSlugs.map((slug) =>
 			fetch(`${CHARGING_STATION_API_BASE_URL}/station/${slug}`, chargingStationAPIFetchOptions),
@@ -82,39 +82,46 @@ export async function getPricingForChargingStations(
 			fetch(`${CHARGING_STATION_API_BASE_URL}/status/${slug}`, chargingStationAPIFetchOptions),
 		),
 	);
-	const stationData: ChargingStationAPIStation[] = await Promise.all(
-		stationResponses.map((res) => res.json()),
-	);
-	const statusData: ChargingStationAPIStationStatus[] = await Promise.all(
-		statusResponses.map((res) => res.json()),
-	);
 
-	// console.log({
-	// 	station: JSON.stringify(stationData[1], null, 2),
-	// 	status: JSON.stringify(statusData[1], null, 2),
-	// });
+	console.log({ stationResponses, statusResponses });
+	try {
+		const stationData: ChargingStationAPIStation[] = await Promise.all(
+			stationResponses.map((res) => res.json()),
+		);
+		const statusData: ChargingStationAPIStationStatus[] = await Promise.all(
+			statusResponses.map((res) => res.json()),
+		);
 
-	const stationDataWithStationStatus = stationData.map((station, i) => {
-		return {
-			...station,
-			outletList: station.outletList.map((list) => ({
-				...list,
-				outlets: list.outlets.map((outlet) => ({
-					...outlet,
-					pricing: Array.isArray(statusData[i])
-						? statusData[i].find((outletStatus) => outletStatus.id === outlet.identifier)
-						: {},
+		// console.log({
+		// 	station: JSON.stringify(stationData[1], null, 2),
+		// 	status: JSON.stringify(statusData[1], null, 2),
+		// });
+
+		const stationDataWithStationStatus = stationData.map((station, i) => {
+			return {
+				...station,
+				outletList: station.outletList.map((list) => ({
+					...list,
+					outlets: list.outlets.map((outlet) => ({
+						...outlet,
+						pricing: Array.isArray(statusData[i])
+							? statusData[i].find((outletStatus) => outletStatus.id === outlet.identifier)
+							: {},
+					})),
 				})),
-			})),
-		};
-	});
+			};
+		});
 
-	const output = stations.map((station) => ({
-		...station,
-		...stationDataWithStationStatus.find((stationData) => stationData.slug === station.slug),
-	}));
+		const output = stations.map((station) => ({
+			...station,
+			...stationDataWithStationStatus.find((stationData) => stationData.slug === station.slug),
+		}));
 
-	return output;
+		return output;
+	} catch (err) {
+		console.log(err);
+		throw error(500, 'Bad response from Charging Station API for pricing');
+	}
 }
 
 const chargingStationAPIFetchOptions = {
