@@ -26,9 +26,11 @@ import type { Route } from './route';
 function createGraphFromRouteAndChargingStations({
 	route,
 	stations,
+	overheadDuration = 5 * 60, // 5 minutes
 }: {
 	route: Route;
 	stations: ChargingStationBasic[];
+	overheadDuration?: number;
 }) {
 	const g = newGraph();
 
@@ -83,7 +85,7 @@ function createGraphFromRouteAndChargingStations({
 
 			g.addLink(chargeLevel, `o${i}`, {
 				distance: 0,
-				duration: 5 * 60, // five minutes for entering/leaving the vehicle, setting up charging, etc.
+				duration: overheadDuration, // for entering/leaving the vehicle, setting up charging, etc.
 				energy: 0,
 				financial: 0,
 			});
@@ -93,9 +95,9 @@ function createGraphFromRouteAndChargingStations({
 		g.addNode(`b${i}`, { coordinates: closest.geometry.coordinates });
 
 		g.addLink(`o${i}`, `b${i}`, {
-			distance: 0,
-			duration: 5 * 60, // five minutes for entering/leaving the vehicle, setting up charging, etc.
-			energy: 0,
+			distance: closest.properties.distanceToPoint, // as the crow flies, should compute a route
+			duration: (closest.properties.distanceToPoint * 60 * 60) / 30000, // TODO: figure out an estimate
+			energy: 0, // TODO: base on route
 			financial: 0,
 		});
 
@@ -113,7 +115,12 @@ function createGraphFromRouteAndChargingStations({
 	g.addNode('d');
 
 	// add edge to the destination from bn
-	g.addLink(previous, 'd');
+	g.addLink(previous, 'd', {
+		distance: 0, // TODO: sum of distances to intersection in route data
+		duration: 0, // TODO: sum of durations to intersection in route data
+		energy: 0, // TODO: sum of energy use to intersection in route data
+		financial: 0,
+	});
 
 	return g;
 }
