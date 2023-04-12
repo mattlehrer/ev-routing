@@ -13,7 +13,7 @@ export async function getChargingStationsAlongRoute({
 	destination: LatLonPair;
 	maxDetour?: number;
 	getPricing?: boolean;
-}): Promise<ChargingStationAPIRouteResponse | ReturnType<typeof getPricingForChargingStations>> {
+}): Promise<ChargingStationAPIRouteResponse> {
 	const [olat, olon] = origin;
 	const [dlat, dlon] = destination;
 
@@ -68,9 +68,7 @@ export async function getChargingStationsAlongRoute({
 	return stationData;
 }
 
-export async function getPricingForChargingStations(
-	stations: ChargingStationAPIRouteResponse['stations'],
-) {
+export async function getPricingForChargingStations(stations: Array<ChargingStationBasic>) {
 	const stationSlugs = stations.map((station) => station.slug).slice(0, 1);
 	const stationResponses = await Promise.all(
 		stationSlugs.map((slug) =>
@@ -181,32 +179,34 @@ export type ChargingStationAPIRouteResponse = {
 		name: string | null;
 	};
 	units: 'km';
-	stations: {
-		slug: string;
-		leg: number;
-		title: string;
-		distance: number;
-		detour: number;
-		location: {
-			latitude: number;
-			longitude: number;
-		};
-		locationAddress: {
-			country: string;
-			city: string;
-			street: string;
-		};
-		maxCapacity: number;
-		minCapacity: number;
-		plugType1: number;
-		plugType2: number;
-		plugType3: number;
-		plugTesla: number;
-		plugCCS: number;
-		plugChademo: number;
-		owner: string;
-		status: number;
-	}[];
+	stations: Array<ChargingStationBasic> | Awaited<ReturnType<typeof getPricingForChargingStations>>;
+};
+
+export type ChargingStationBasic = {
+	slug: string;
+	leg: number;
+	title: string;
+	distance: number;
+	detour: number;
+	location: {
+		latitude: number;
+		longitude: number;
+	};
+	locationAddress: {
+		country: string;
+		city: string;
+		street: string;
+	};
+	maxCapacity: number;
+	minCapacity: number;
+	plugType1: number;
+	plugType2: number;
+	plugType3: number;
+	plugTesla: number;
+	plugCCS: number;
+	plugChademo: number;
+	owner: string;
+	status: number;
 };
 
 export type ChargingStationAPILatLonResponse = Array<{
