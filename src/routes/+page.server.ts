@@ -6,8 +6,9 @@ import {
 	getRoute,
 	type Route,
 } from '$lib/route';
+import { createGraphFromRouteAndChargingStations } from '$lib/station_graph';
 import { error } from '@sveltejs/kit';
-import type { PageServerLoad } from './$types';
+import type { Actions, PageServerLoad } from './$types';
 
 export const load = (async ({ url }) => {
 	const searchParams = url.searchParams;
@@ -71,9 +72,6 @@ export const load = (async ({ url }) => {
 		},
 	};
 }) satisfies PageServerLoad;
-
-import { createGraphFromRouteAndChargingStations } from '$lib/station_graph';
-import type { Actions } from './$types';
 
 export const actions = {
 	default: async ({ request }) => {

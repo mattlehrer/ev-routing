@@ -1,6 +1,4 @@
 /**
- * TODO:
- *
  * Construct the graph
  *
  * Use the method in
@@ -104,9 +102,9 @@ export function createGraphFromRouteAndChargingStations({
 			//  add edges from the station to each battery level
 			g.addLink(`i${i}`, chargeLevel, {
 				distance: 0,
-				duration: undefined, // TODO: will be calculated based on starting and ending SoC
+				duration: undefined, // will be calculated based on starting and ending SoC
 				power: 0, // changes SoC but does not consume energy
-				financial: undefined, // TODO: will be calculated based on starting and ending SoC
+				financial: undefined, // will be calculated based on starting and ending SoC
 			});
 
 			g.addLink(chargeLevel, `o${i}`, {
@@ -122,7 +120,7 @@ export function createGraphFromRouteAndChargingStations({
 
 		g.addLink(`o${i}`, `b${i}`, {
 			distance: closest.properties.distanceToPoint, // as the crow flies, should compute a route
-			duration: (closest.properties.distanceToPoint * 60 * 60) / 30000, // TODO: figure out an estimate
+			duration: (closest.properties.distanceToPoint * 60 * 60) / 30000, // figure out an estimate
 			// TODO: base on route
 			power: calc_route_segment_battery_power_flow({
 				distance: closest.properties.distanceToPoint,
@@ -179,29 +177,8 @@ export function findClosestIntersectionOnRouteToChargingStation({
 	);
 
 	const nearestPointToStation = nearestPoint([longitude, latitude], points);
-	console.log({ nearestPointToStation, points });
 	return nearestPointToStation;
 }
-// export function findClosestIntersectionOnRouteToChargingStation({
-// 	route,
-// 	station,
-// }: {
-// 	route: Route;
-// 	station: ChargingStationBasic;
-// }) {
-// 	const { latitude, longitude } = station.location;
-// 	const points = featureCollection(
-// 		route.legs.flatMap((leg) =>
-// 			leg.steps.flatMap((step) =>
-// 				step.intersections.map((intersection) => point(intersection.location)),
-// 			),
-// 		),
-// 	);
-// 	// console.log(JSON.stringify(points, null, 2));
-
-// 	const nearestPointToStation = nearestPoint([longitude, latitude], points);
-// 	return nearestPointToStation;
-// }
 
 /**
  * Sum stats about a route between two positions.
