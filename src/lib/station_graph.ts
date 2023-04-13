@@ -17,18 +17,20 @@
  *
  */
 
-import { featureCollection, point } from '@turf/helpers';
+import { featureCollection, point, type Position } from '@turf/helpers';
 import nearestPoint from '@turf/nearest-point';
 import newGraph from 'ngraph.graph';
+import { calc_route_segment_battery_power_flow } from './battery_sim/route_segment_battery_consumption';
 import type { ChargingStationBasic } from './charging_stations';
-import type { Route } from './route';
+import type { convertRouteFromStepsToIntersections } from './route';
+import { TestVehicle } from './vehicles/TestVehicle';
 
-function createGraphFromRouteAndChargingStations({
-	route,
+export function createGraphFromRouteAndChargingStations({
+	intersections,
 	stations,
 	overheadDuration = 5 * 60, // 5 minutes
 }: {
-	route: Route;
+	intersections: ReturnType<typeof convertRouteFromStepsToIntersections>;
 	stations: ChargingStationBasic[];
 	overheadDuration?: number;
 }) {
@@ -37,20 +39,36 @@ function createGraphFromRouteAndChargingStations({
 	//  add a node for the beginning of the route
 	g.addNode('s');
 	let previous = 's';
+	let previousLonLat = intersections[0].intersection.location;
+
+	const sortedStations = stations
+		.map((station) => ({
+			...station,
+			closest: findClosestIntersectionOnRouteToChargingStation({ intersections, station }),
+		}))
+		.sort((a, b) => a.closest.properties.featureIndex - b.closest.properties.featureIndex);
 
 	//  for each station,
-	stations.forEach((station, i) => {
+	sortedStations.forEach((station, i) => {
 		//  find the closest intersection on the route
-		const closest = findClosestIntersectionOnRouteToChargingStation({ route, station });
+		const closest = station.closest;
 
 		//  add a node for that intersection - ai
 		g.addNode(`a${i}`, { coordinates: closest.geometry.coordinates });
 
+		// console.log({ closest, intersections });
+
+		const statsFromPrevToA = cumulativeStatsAlongRoute({
+			intersections,
+			start: previousLonLat,
+			end: closest.geometry.coordinates,
+		});
+
 		//  add an edge from the previous station to this intersection
 		g.addLink(previous, `a${i}`, {
-			distance: 0, // TODO: sum of distances to intersection in route data
-			duration: 0, // TODO: sum of durations to intersection in route data
-			energy: 0, // TODO: sum of energy use to intersection in route data
+			distance: statsFromPrevToA.distance,
+			duration: statsFromPrevToA.duration,
+			power: statsFromPrevToA.power,
 			financial: 0,
 		});
 		previous = `a${i}`;
@@ -61,8 +79,16 @@ function createGraphFromRouteAndChargingStations({
 		// add an edge from intersection to station
 		g.addLink(`a${i}`, `i${i}`, {
 			distance: closest.properties.distanceToPoint, // as the crow flies, should compute a route
-			duration: (closest.properties.distanceToPoint * 60 * 60) / 30000, // TODO: figure out an estimate
-			energy: 0, // TODO: base on route
+			duration: (closest.properties.distanceToPoint * 60 * 60) / 30000, // 30km/h
+			// TODO: base on route
+			power: calc_route_segment_battery_power_flow({
+				vehicle: TestVehicle,
+				distance: closest.properties.distanceToPoint,
+				duration: (closest.properties.distanceToPoint * 60 * 60) / 30000,
+				elevation_start: 0,
+				elevation_end: 0,
+				density_of_air: 1.225,
+			}),
 			financial: 0,
 		});
 
@@ -79,14 +105,14 @@ function createGraphFromRouteAndChargingStations({
 			g.addLink(`i${i}`, chargeLevel, {
 				distance: 0,
 				duration: undefined, // TODO: will be calculated based on starting and ending SoC
-				energy: 0, // changes SoC but does not consume energy
+				power: 0, // changes SoC but does not consume energy
 				financial: undefined, // TODO: will be calculated based on starting and ending SoC
 			});
 
 			g.addLink(chargeLevel, `o${i}`, {
 				distance: 0,
 				duration: overheadDuration, // for entering/leaving the vehicle, setting up charging, etc.
-				energy: 0,
+				power: 0,
 				financial: 0,
 			});
 		}
@@ -97,28 +123,43 @@ function createGraphFromRouteAndChargingStations({
 		g.addLink(`o${i}`, `b${i}`, {
 			distance: closest.properties.distanceToPoint, // as the crow flies, should compute a route
 			duration: (closest.properties.distanceToPoint * 60 * 60) / 30000, // TODO: figure out an estimate
-			energy: 0, // TODO: base on route
+			// TODO: base on route
+			power: calc_route_segment_battery_power_flow({
+				distance: closest.properties.distanceToPoint,
+				duration: (closest.properties.distanceToPoint * 60 * 60) / 30000,
+				elevation_start: 0,
+				elevation_end: 0,
+				vehicle: TestVehicle,
+				density_of_air: 1.225,
+			}),
 			financial: 0,
 		});
 
 		g.addLink(`a${i}`, `b${i}`, {
 			distance: 0,
 			duration: 0,
-			energy: 0,
+			power: 0,
 			financial: 0,
 		});
 
 		previous = `b${i}`;
+		previousLonLat = closest.geometry.coordinates;
 	});
 
 	// add node for destination
 	g.addNode('d');
 
+	const statsFromPrevToA = cumulativeStatsAlongRoute({
+		intersections,
+		start: previousLonLat,
+		end: intersections[intersections.length - 1].intersection.location,
+	});
+
 	// add edge to the destination from bn
 	g.addLink(previous, 'd', {
-		distance: 0, // TODO: sum of distances to intersection in route data
-		duration: 0, // TODO: sum of durations to intersection in route data
-		energy: 0, // TODO: sum of energy use to intersection in route data
+		distance: statsFromPrevToA.distance,
+		duration: statsFromPrevToA.duration,
+		power: statsFromPrevToA.power,
 		financial: 0,
 	});
 
@@ -126,22 +167,104 @@ function createGraphFromRouteAndChargingStations({
 }
 
 export function findClosestIntersectionOnRouteToChargingStation({
-	route,
+	intersections,
 	station,
 }: {
-	route: Route;
+	intersections: ReturnType<typeof convertRouteFromStepsToIntersections>;
 	station: ChargingStationBasic;
 }) {
 	const { latitude, longitude } = station.location;
 	const points = featureCollection(
-		route.legs.flatMap((leg) =>
-			leg.steps.flatMap((step) =>
-				step.intersections.map((intersection) => point(intersection.location)),
-			),
-		),
+		intersections.map((intersection) => point(intersection.intersection.location)),
 	);
-	console.log(JSON.stringify(points, null, 2));
 
 	const nearestPointToStation = nearestPoint([longitude, latitude], points);
+	console.log({ nearestPointToStation, points });
 	return nearestPointToStation;
+}
+// export function findClosestIntersectionOnRouteToChargingStation({
+// 	route,
+// 	station,
+// }: {
+// 	route: Route;
+// 	station: ChargingStationBasic;
+// }) {
+// 	const { latitude, longitude } = station.location;
+// 	const points = featureCollection(
+// 		route.legs.flatMap((leg) =>
+// 			leg.steps.flatMap((step) =>
+// 				step.intersections.map((intersection) => point(intersection.location)),
+// 			),
+// 		),
+// 	);
+// 	// console.log(JSON.stringify(points, null, 2));
+
+// 	const nearestPointToStation = nearestPoint([longitude, latitude], points);
+// 	return nearestPointToStation;
+// }
+
+/**
+ * Sum stats about a route between two positions.
+ * @param route The route to search
+ * @param start The start position
+ * @param end The end position
+ * @returns An object with the distance, in meters, duration, in s, and the power use, in Wh
+ */
+export function cumulativeStatsAlongRoute({
+	intersections,
+	start,
+	end,
+}: {
+	intersections: ReturnType<typeof convertRouteFromStepsToIntersections>;
+	start: Position;
+	end: Position;
+}): { distance: number; duration: number; power: number } {
+	let distance = 0;
+	let duration = 0;
+	let power = 0;
+
+	// console.log({ start, end });
+
+	if (start[0] === end[0] && start[1] === end[1]) {
+		return { distance, duration, power };
+	}
+
+	let isAfterStart = false;
+
+	for (const intersection of intersections) {
+		if (!isAfterStart) {
+			//  if the intersection is the start position,
+			if (
+				intersection.intersection.location[0] === start[0] &&
+				intersection.intersection.location[1] === start[1]
+			) {
+				//  set the flag to true
+				isAfterStart = true;
+				// step.distance is the distance to the next maneuver, so we need to start adding now
+				distance += intersection.distance;
+				duration += intersection.duration;
+				power += intersection.power ? intersection.power : 0;
+			}
+		} else {
+			//  if the intersection is the end position,
+			if (
+				intersection.intersection.location[0] === end[0] &&
+				intersection.intersection.location[1] === end[1]
+			) {
+				// and break out of the loop and return the stats
+				// break;
+				return { distance, duration, power };
+			} else {
+				distance += intersection.distance;
+				duration += intersection.duration;
+				power += intersection.power ? intersection.power : 0;
+			}
+		}
+	}
+
+	if (!isAfterStart) {
+		throw new Error('Start position not found on route');
+	} else {
+		throw new Error('End position not found on route');
+	}
 }

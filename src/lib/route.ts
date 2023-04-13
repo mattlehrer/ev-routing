@@ -36,6 +36,33 @@ export function getRoute(data: {
 	});
 }
 
+export function convertRouteFromStepsToIntersections(route: Route) {
+	const modRoute = [];
+	for (const leg of route.legs) {
+		let i = 0;
+		for (const step of leg.steps) {
+			for (const intersection of step.intersections) {
+				modRoute.push({
+					intersection,
+					distance: leg.annotation.distance[i],
+					duration: leg.annotation.duration[i],
+					power: calc_route_segment_battery_power_flow({
+						distance: leg.annotation.distance[i],
+						duration: leg.annotation.duration[i],
+						elevation_start: 0,
+						elevation_end: 0,
+						vehicle: TestVehicle,
+						density_of_air: 1.225,
+					}),
+				});
+				i++;
+			}
+		}
+	}
+
+	return modRoute;
+}
+
 export function calcPowerForRouteWithVehicle(route: Route, vehicle = TestVehicle) {
 	const modRoute: Route = {
 		...route,
@@ -79,5 +106,10 @@ export interface RouteLeg extends OSRM.RouteLeg {
 }
 
 export interface RouteStep extends OSRM.RouteStep {
+	intersections: Intersection[];
+	power?: number;
+}
+
+export interface Intersection extends OSRM.Intersection {
 	power?: number;
 }

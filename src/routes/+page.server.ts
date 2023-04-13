@@ -1,6 +1,11 @@
 import { getChargingStationsAlongRoute } from '$lib/charging_stations';
 import type { LatLonPair } from '$lib/lat_lon';
-import { calcPowerForRouteWithVehicle, getRoute, type Route } from '$lib/route';
+import {
+	calcPowerForRouteWithVehicle,
+	convertRouteFromStepsToIntersections,
+	getRoute,
+	type Route,
+} from '$lib/route';
 import { error } from '@sveltejs/kit';
 import type { PageServerLoad } from './$types';
 
@@ -33,6 +38,19 @@ export const load = (async ({ url }) => {
 		}
 	}
 
+	if (route && origin && destination) {
+		const chargingStations = await getChargingStationsAlongRoute({
+			origin,
+			destination,
+			getPricing: true,
+		});
+
+		createGraphFromRouteAndChargingStations({
+			intersections: convertRouteFromStepsToIntersections(route),
+			stations: chargingStations.stations,
+		});
+	}
+
 	return {
 		olat: olatParam && Number(JSON.parse(decodeURI(olatParam || ''))),
 		olon: olonParam && Number(JSON.parse(decodeURI(olonParam || ''))),
@@ -59,6 +77,7 @@ export const load = (async ({ url }) => {
 	};
 }) satisfies PageServerLoad;
 
+import { createGraphFromRouteAndChargingStations } from '$lib/station_graph';
 import type { Actions } from './$types';
 
 export const actions = {
