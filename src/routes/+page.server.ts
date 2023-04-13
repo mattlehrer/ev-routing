@@ -68,11 +68,6 @@ export const load = (async ({ url }) => {
 					destination,
 					getPricing: true,
 				}),
-			// three: new Promise((fulfil) => {
-			// 	setTimeout(() => {
-			// 		fulfil(3);
-			// 	}, 1000);
-			// }),
 		},
 	};
 }) satisfies PageServerLoad;
