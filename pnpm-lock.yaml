@@ -13,6 +13,9 @@ dependencies:
   '@turf/nearest-point':
     specifier: ^6.5.0
     version: 6.5.0
+  heap-js:
+    specifier: ^2.2.0
+    version: 2.2.0
   humanize-duration:
     specifier: ^3.28.0
     version: 3.28.0
@@ -1623,6 +1626,11 @@ packages:
     engines: {node: '>= 0.4.0'}
     dependencies:
       function-bind: 1.1.1
+
+  /heap-js@2.2.0:
+    resolution: {integrity: sha512-G3uM72G9F/zo9Hph/T7m4ZZVlVu5bx2f5CiCS78TBHz2mNIXnB5KRdEEYssXZJ7ldLDqID29bZ1D5ezCKQD2Zw==}
+    engines: {node: '>=10.0.0'}
+    dev: false
 
   /https-proxy-agent@5.0.1:
     resolution: {integrity: sha512-dFcAjpTQFgoLMzC2VwU+C/CbS7uRL0lWmxDITmqm7C+7F0Odmj6s9l6alZc6AELXhrnggM2CeWSXHGOdX2YtwA==}

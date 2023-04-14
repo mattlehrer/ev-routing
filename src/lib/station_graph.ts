@@ -15,13 +15,98 @@
  *
  */
 
+import type { Coordinate } from '@project-osrm/osrm';
 import { featureCollection, point, type Position } from '@turf/helpers';
 import nearestPoint from '@turf/nearest-point';
+import Heap from 'heap-js';
+import type { Link } from 'ngraph.graph';
 import newGraph from 'ngraph.graph';
 import { calc_route_segment_battery_power_flow } from './battery_sim/route_segment_battery_consumption';
 import type { ChargingStationBasic } from './charging_stations';
 import type { convertRouteFromStepsToIntersections } from './route';
 import { TestVehicle } from './vehicles/TestVehicle';
+
+export function findPathInGraphWithCostFunction({
+	g,
+	type,
+	initialSoC,
+	s = 's',
+	d = 'd',
+	minSoC = 0.1 * TestVehicle.battery_capacity,
+}: {
+	g: ReturnType<typeof createGraphFromRouteAndChargingStations>;
+	type: 'cumulativeDuration' | 'cumulativePower' | 'cumulativeFinancialCost' | 'cumulativeDistance';
+	initialSoC: number;
+	s?: string;
+	d?: string;
+	minSoC?: number;
+}) {
+	const lTemp = new Heap<NodeLabel>((a, b) => a[type] - b[type]); // opened nodes
+	const lPerm = new Heap<NodeLabel>((a, b) => a[type] - b[type]); // closed nodes
+
+	lTemp.add({
+		currentNode: s,
+		cumulativeDuration: 0,
+		cumulativePower: 0,
+		cumulativeFinancialCost: 0,
+		cumulativeDistance: 0,
+		precedingNode: null,
+		prevLabelIndex: 0,
+		currentLabelIndex: 0,
+	});
+	let lCurrent: NodeLabel | undefined = undefined;
+	while (lTemp.size() > 0) {
+		lCurrent = lTemp.pop();
+		if (!lCurrent) throw new Error('lCurrent is undefined');
+		lPerm.add(lCurrent);
+		// for all outgoing edges of lCurrent.currentNode
+		g.forEachLinkedNode(
+			lCurrent.currentNode,
+			(node, link) => {
+				const edge = link.data;
+				if (!edge) throw new Error('edge is undefined');
+				if (!lCurrent) throw new Error('lCurrent is undefined');
+				const newCumulativeDuration = lCurrent.cumulativeDuration + edge.duration;
+
+				// calculate the change in power for this edge
+				let edgePower = 0;
+				if (['a', 'i'].includes(edge.type)) {
+					edgePower = edge.power;
+				}
+
+				const newCumulativePower = Math.min(
+					TestVehicle.battery_capacity,
+					lCurrent.cumulativePower + edgePower,
+				);
+				const newCumulativeFinancialCost = lCurrent.cumulativeFinancialCost + edge.financial;
+				const newCumulativeDistance = lCurrent.cumulativeDistance + edge.distance;
+
+				const newLabel = {
+					currentNode: String(node.id),
+					cumulativeDuration: newCumulativeDuration,
+					cumulativePower: newCumulativePower,
+					cumulativeFinancialCost: newCumulativeFinancialCost,
+					cumulativeDistance: newCumulativeDistance,
+					precedingNode: lCurrent.currentNode,
+					prevLabelIndex: lCurrent.currentLabelIndex,
+					currentLabelIndex: lCurrent.currentLabelIndex + 1,
+				};
+
+				if (initialSoC - newCumulativePower >= minSoC) {
+					lTemp.add(newLabel);
+				}
+			},
+			true, // only outgoing edges
+		);
+	}
+
+	if (lCurrent?.currentNode === d) {
+		return lCurrent;
+	} else {
+		// “No feasible solution found.”
+		return null;
+	}
+}
 
 export function createGraphFromRouteAndChargingStations({
 	intersections,
@@ -32,7 +117,7 @@ export function createGraphFromRouteAndChargingStations({
 	stations: ChargingStationBasic[];
 	overheadDuration?: number;
 }) {
-	const g = newGraph();
+	const g = newGraph<NodeType>();
 
 	//  add a node for the beginning of the route
 	g.addNode('s');
@@ -52,7 +137,7 @@ export function createGraphFromRouteAndChargingStations({
 		const closest = station.closest;
 
 		//  add a node for that intersection - ai
-		g.addNode(`a${i}`, { coordinates: closest.geometry.coordinates });
+		g.addNode(`a${i}`, { type: 'a', coordinates: closest.geometry.coordinates });
 
 		// console.log({ closest, intersections });
 
@@ -72,7 +157,7 @@ export function createGraphFromRouteAndChargingStations({
 		previous = `a${i}`;
 
 		//  add a node for the station - ii
-		g.addNode(`i${i}`, { station });
+		g.addNode(`i${i}`, { type: 'i', station });
 
 		// add an edge from intersection to station
 		g.addLink(`a${i}`, `i${i}`, {
@@ -96,8 +181,8 @@ export function createGraphFromRouteAndChargingStations({
 		// TODO: factor in multiple outlets per station, different charging rates and prices
 		for (let j = 10; j <= 100; j += 10) {
 			const chargeLevel = `c${i}-${j}`;
-			//  add a node for each battery level
-			g.addNode(chargeLevel, { batteryLevel: j });
+			//  add a node for each charge level
+			g.addNode(chargeLevel), { type: 'c', chargeLevel: j };
 
 			//  add edges from the station to each battery level
 			g.addLink(`i${i}`, chargeLevel, {
@@ -116,7 +201,7 @@ export function createGraphFromRouteAndChargingStations({
 		}
 
 		// add a node for bi that has edges from ai and oi, same location as ai
-		g.addNode(`b${i}`, { coordinates: closest.geometry.coordinates });
+		g.addNode(`b${i}`, { type: 'b', coordinates: closest.geometry.coordinates });
 
 		g.addLink(`o${i}`, `b${i}`, {
 			distance: closest.properties.distanceToPoint, // as the crow flies, should compute a route
@@ -245,3 +330,42 @@ export function cumulativeStatsAlongRoute({
 		throw new Error('End position not found on route');
 	}
 }
+
+type ArrayElement<ArrayType extends readonly unknown[]> =
+	ArrayType extends readonly (infer ElementType)[] ? ElementType : never;
+type IntersectionWithStats = ArrayElement<ReturnType<typeof convertRouteFromStepsToIntersections>>;
+
+type Edge = Link<{
+	distance: number;
+	duration: number;
+	power: number;
+	cost: number;
+}>;
+
+type NodeLabel = {
+	cumulativeDuration: number;
+	cumulativePower: number;
+	cumulativeFinancialCost: number;
+	cumulativeDistance: number;
+	precedingNode: string | null;
+	prevLabelIndex: number; // "which of the labels belonging to the preceding node is relevant for getting the currently considered label"
+	currentNode: string;
+	currentLabelIndex: number;
+};
+
+type NodeType =
+	| {
+			type: 's' | 'd' | 'a' | 'b';
+			coordinates: Coordinate;
+	  }
+	| {
+			type: 'i';
+			station: ChargingStationBasic;
+	  }
+	| {
+			type: 'c';
+			chargeLevel: number;
+	  }
+	| {
+			type: 'o';
+	  };

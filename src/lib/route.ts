@@ -54,6 +54,7 @@ export function convertRouteFromStepsToIntersections(route: Route) {
 						vehicle: TestVehicle,
 						density_of_air: 1.225,
 					}),
+					cost: 0,
 				});
 				i++;
 			}
