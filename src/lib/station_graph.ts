@@ -68,16 +68,17 @@ export function findPathInGraphWithCostFunction({
 				if (!lCurrent) throw new Error('lCurrent is undefined');
 				const newCumulativeDuration = lCurrent.cumulativeDuration + edge.duration;
 
-				// calculate the change in power for this edge
+				// TODO: calculate the change in power for this edge
 				let edgePower = 0;
-				if (['a', 'i'].includes(edge.type)) {
+				if (['a', 'i'].includes(node.data.type)) {
 					edgePower = edge.power;
 				}
-
 				const newCumulativePower = Math.min(
 					TestVehicle.battery_capacity,
 					lCurrent.cumulativePower + edgePower,
 				);
+
+				// TODO: calculate the change in financial cost for this edge
 				const newCumulativeFinancialCost = lCurrent.cumulativeFinancialCost + edge.financial;
 				const newCumulativeDistance = lCurrent.cumulativeDistance + edge.distance;
 
