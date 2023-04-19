@@ -108,7 +108,7 @@ export const calc_f_omega_a = ({
 
 /**
  * total tractive effort at the wheels in Newtons
- * @param f_ad force of erodynamic drag in Newtons
+ * @param f_ad force of aerodynamic drag in Newtons
  * @param f_rr force of rolling resistance in Newtons
  * @param f_hc hill climbing force in Newtons
  * @param f_la force of linear acceleration in Newtons
