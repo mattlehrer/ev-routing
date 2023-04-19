@@ -44,6 +44,9 @@
 		"vitest": "^0.30.0"
 	},
 	"type": "module",
+	"engines": {
+		"node": ">=18.16"
+	},
 	"dependencies": {
 		"@project-osrm/osrm": "^5.27.1",
 		"@tailwindcss/forms": "^0.5.3",
