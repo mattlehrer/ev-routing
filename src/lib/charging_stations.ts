@@ -81,7 +81,7 @@ export async function getPricingForChargingStations(stations: Array<ChargingStat
 		),
 	);
 
-	console.log({ stationResponses, statusResponses });
+	// console.log({ stationResponses, statusResponses });
 	try {
 		const stationData: ChargingStationAPIStation[] = await Promise.all(
 			stationResponses.map((res) => res.json()),
