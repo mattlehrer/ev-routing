@@ -169,7 +169,11 @@
 					{/if}
 				{/if}
 				{#await data.streamed?.stationData}
-					Loading...
+					<div
+						class="absolute left-64 top-3 z-[10000] ml-4 rounded-md border border-green-700 bg-white bg-opacity-70 px-8 py-3 text-lg"
+					>
+						Loading charging station data...
+					</div>
 				{:then json}
 					{@const stations = json?.stations ?? []}
 					{#each stations as station}
