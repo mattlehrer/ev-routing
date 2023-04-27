@@ -109,6 +109,13 @@ export function findPathInGraphWithCostFunction({
 	}
 }
 
+/**
+ * Create a graph data structure from a route and a list of charging stations.
+ * @param intersections the intersections along the route
+ * @param stations the list of charging stations
+ * @param overheadDuration the time it takes to enter/exit the vehicle, set up payment, etc.
+ * @returns the constructed graph
+ */
 export function createGraphFromRouteAndChargingStations({
 	intersections,
 	stations,
@@ -250,6 +257,12 @@ export function createGraphFromRouteAndChargingStations({
 	return g;
 }
 
+/**
+ * Find the closest intersection from a list of intersections to a charging station.
+ * @param intersections a list of intersections with LatLng coordinates
+ * @param station a charging station with LatLng coordinates
+ * @returns the intersection closest to the station
+ */
 export function findClosestIntersectionOnRouteToChargingStation({
 	intersections,
 	station,
@@ -332,17 +345,6 @@ export function cumulativeStatsAlongRoute({
 	}
 }
 
-type ArrayElement<ArrayType extends readonly unknown[]> =
-	ArrayType extends readonly (infer ElementType)[] ? ElementType : never;
-type IntersectionWithStats = ArrayElement<ReturnType<typeof convertRouteFromStepsToIntersections>>;
-
-type Edge = Link<{
-	distance: number;
-	duration: number;
-	power: number;
-	cost: number;
-}>;
-
 type NodeLabel = {
 	cumulativeDuration: number;
 	cumulativePower: number;
@@ -370,3 +372,14 @@ type NodeType =
 	| {
 			type: 'o';
 	  };
+
+type ArrayElement<ArrayType extends readonly unknown[]> =
+	ArrayType extends readonly (infer ElementType)[] ? ElementType : never;
+type IntersectionWithStats = ArrayElement<ReturnType<typeof convertRouteFromStepsToIntersections>>;
+
+type Edge = Link<{
+	distance: number;
+	duration: number;
+	power: number;
+	cost: number;
+}>;
