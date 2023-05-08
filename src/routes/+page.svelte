@@ -196,7 +196,7 @@
 	</div>
 
 	<div id="route" class="absolute left-0 top-0 z-10 w-64 p-3">
-		<div class="isolate -space-y-px rounded-md shadow-sm">
+		<div class="isolate -space-y-px rounded-md">
 			<form
 				method="POST"
 				use:enhance={() => {
