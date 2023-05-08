@@ -1,3 +1,4 @@
+import type { ChargingStationAPIRouteResponse } from '$lib/charging_stations';
 import humanizeDuration from 'humanize-duration';
 import type { LatLng } from 'leaflet';
 
@@ -29,4 +30,8 @@ export function formatPower(wH: number) {
 			maximumFractionDigits: 1,
 		}).format(wH) + ' Wh'
 	);
+}
+
+export function formatStationInfo(station: ChargingStationAPIRouteResponse['stations'][number]) {
+	return `${station.title}\nFastest charger is ${station.maxCapacity} kW`;
 }

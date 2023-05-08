@@ -162,10 +162,10 @@ export const calc_p_motor_in = ({
 /**
  * calculates the regeneration factor based on the current speed,
  * minimum speed for regeneration, and
- * the speed for maximum regneration (above which additional energy is heat waste)
+ * the speed for maximum regeneration (above which additional energy is heat waste)
  * @param u the current speed of the vehicle in m/s
  * @param u1 the minimum speed for regeneration in m/s
- * @param u2 the speed for maximum regneration in m/s
+ * @param u2 the speed for maximum regeneration in m/s
  * @returns the regeneration factor, between 0 and 1
  */
 export const calc_regen_factor = ({

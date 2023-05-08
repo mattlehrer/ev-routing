@@ -6,7 +6,13 @@
 	import 'leaflet/dist/leaflet.css';
 	import { onMount } from 'svelte';
 	import { enhance } from '$app/forms';
-	import { formatDistance, formatDuration, formatLatLng, formatPower } from '$lib/utils/formatters';
+	import {
+		formatDistance,
+		formatDuration,
+		formatLatLng,
+		formatPower,
+		formatStationInfo,
+	} from '$lib/utils/formatters';
 	import { pinIcon } from '$lib/assets/pin';
 	import { mapOptions, tileLayerOptions, tileUrl } from '$lib/map';
 	import type { Route, RouteStep } from '$lib/route';
@@ -42,7 +48,7 @@
 		if (!origin) {
 			origin = formatLatLng(e.detail.latlng);
 			originLatLng = [e.detail.latlng.lat, e.detail.latlng.lng];
-		} else {
+		} else if (!destination) {
 			destination = formatLatLng(e.detail.latlng);
 			destinationLatLng = [e.detail.latlng.lat, e.detail.latlng.lng];
 		}
@@ -169,13 +175,17 @@
 					{/if}
 				{/if}
 				{#await data.streamed?.stationData}
-					Loading...
+					<div
+						class="absolute left-64 top-3 z-[10000] ml-4 rounded-md border border-green-700 bg-white bg-opacity-70 px-8 py-3 text-lg"
+					>
+						Loading charging station data...
+					</div>
 				{:then json}
 					{@const stations = json?.stations ?? []}
 					{#each stations as station}
 						<Marker
 							latLng={[station.location.latitude, station.location.longitude]}
-							options={{ title: JSON.stringify(station), bubblingMouseEvents: false }}
+							options={{ title: formatStationInfo(station), bubblingMouseEvents: false }}
 						>
 							<DivIcon options={{ html: evcsIcon('text-green-500') }} />
 						</Marker>

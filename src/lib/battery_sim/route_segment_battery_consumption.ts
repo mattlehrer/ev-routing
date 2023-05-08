@@ -51,7 +51,7 @@ export const calc_route_segment_battery_power_flow = ({
 	// calculate the average slope angle for the segment in radians
 	const slope_angle = Math.atan((elevation_end - elevation_start) / distance);
 
-	// calculate the total tractive effor at the wheels in Newtonws
+	// calculate the total tractive effort at the wheels in Newtons
 	const aerodynamic_drag_force = calc_f_ad({
 		rho: density_of_air,
 		c_d: vehicle.drag_coefficient,
