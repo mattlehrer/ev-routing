@@ -3,6 +3,11 @@ import { calc_route_segment_battery_power_flow } from './battery_sim/route_segme
 import { TestVehicle } from './vehicles/TestVehicle';
 const osrm = new OSRM({ path: 'osrmdata/sweden-latest.osrm', algorithm: 'MLD' });
 
+/**
+ * generate a road route from origin to destination
+ * @param data: { origin: [number, number], destination: [number, number] } both in the form [lat, lon]
+ * @returns OSRM route
+ */
 export function getRoute(data: {
 	origin: [number, number];
 	destination: [number, number];
