@@ -319,7 +319,7 @@
 												on:focus={() => handleStepHover(step)}
 												on:mouseout={() => (hoveredStepLonLat = undefined)}
 												on:blur={() => (hoveredStepLonLat = undefined)}
-												class="mt-2 text-sm"
+												class="mt-2 text-sm hover:-mx-3 hover:bg-red-500 hover:bg-opacity-30 hover:px-3"
 											>
 												<p>
 													{step.maneuver.type}
