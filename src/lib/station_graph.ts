@@ -21,9 +21,12 @@ import nearestPoint from '@turf/nearest-point';
 import Heap from 'heap-js';
 import type { Link } from 'ngraph.graph';
 import newGraph from 'ngraph.graph';
-import { calc_route_segment_battery_power_flow } from './battery_sim/route_segment_battery_consumption';
 import type { ChargingStationBasic } from './charging_stations';
-import type { convertRouteFromStepsToIntersections } from './route';
+import {
+	calcPowerForRouteWithVehicle,
+	getRoute,
+	type convertRouteFromStepsToIntersections,
+} from './route';
 import { TestVehicle } from './vehicles/TestVehicle';
 
 export function findPathInGraphWithCostFunction({
@@ -116,7 +119,7 @@ export function findPathInGraphWithCostFunction({
  * @param overheadDuration the time it takes to enter/exit the vehicle, set up payment, etc.
  * @returns the constructed graph
  */
-export function createGraphFromRouteAndChargingStations({
+export async function createGraphFromRouteAndChargingStations({
 	intersections,
 	stations,
 	overheadDuration = 5 * 60, // 5 minutes
@@ -147,19 +150,19 @@ export function createGraphFromRouteAndChargingStations({
 		);
 
 	//  for each station,
-	sortedStations.forEach((station, i) => {
+	for (const [i, station] of sortedStations.entries()) {
 		//  use the closest intersection on the route
-		const closest = station.closestIntersection;
+		const { closestIntersection } = station;
 
 		//  add a node for that intersection - ai
-		g.addNode(`a${i}`, { type: 'a', coordinates: closest.geometry.coordinates });
+		g.addNode(`a${i}`, { type: 'a', coordinates: closestIntersection.geometry.coordinates });
 
 		// console.log({ closest, intersections });
 
 		const statsFromPrevToA = cumulativeStatsAlongRoute({
 			intersections,
 			start: previousLonLat,
-			end: closest.geometry.coordinates,
+			end: closestIntersection.geometry.coordinates,
 		});
 
 		//  add an edge from the previous station to this intersection
@@ -174,19 +177,17 @@ export function createGraphFromRouteAndChargingStations({
 		//  add a node for the station - ii
 		g.addNode(`i${i}`, { type: 'i', station });
 
+		let route = await getRoute({
+			origin: closestIntersection.geometry.coordinates as [number, number],
+			destination: [station.location.latitude, station.location.longitude],
+		});
+		let { totalPower } = calcPowerForRouteWithVehicle(route);
+
 		// add an edge from intersection to station
 		g.addLink(`a${i}`, `i${i}`, {
-			distance: closest.properties.distanceToPoint, // as the crow flies, should compute a route
-			duration: (closest.properties.distanceToPoint * 60 * 60) / 30000, // 30km/h
-			// TODO: base on route
-			power: calc_route_segment_battery_power_flow({
-				vehicle: TestVehicle,
-				distance: closest.properties.distanceToPoint,
-				duration: (closest.properties.distanceToPoint * 60 * 60) / 30000,
-				elevation_start: 0,
-				elevation_end: 0,
-				density_of_air: 1.225,
-			}),
+			distance: route.distance,
+			duration: route.duration,
+			power: totalPower,
 			financial: 0,
 		});
 
@@ -216,20 +217,18 @@ export function createGraphFromRouteAndChargingStations({
 		}
 
 		// add a node for bi that has edges from ai and oi, same location as ai
-		g.addNode(`b${i}`, { type: 'b', coordinates: closest.geometry.coordinates });
+		g.addNode(`b${i}`, { type: 'b', coordinates: closestIntersection.geometry.coordinates });
+
+		route = await getRoute({
+			origin: closestIntersection.geometry.coordinates as [number, number],
+			destination: [station.location.latitude, station.location.longitude],
+		});
+		({ totalPower } = calcPowerForRouteWithVehicle(route));
 
 		g.addLink(`o${i}`, `b${i}`, {
-			distance: closest.properties.distanceToPoint, // as the crow flies, should compute a route
-			duration: (closest.properties.distanceToPoint * 60 * 60) / 30000, // figure out an estimate
-			// TODO: base on route
-			power: calc_route_segment_battery_power_flow({
-				distance: closest.properties.distanceToPoint,
-				duration: (closest.properties.distanceToPoint * 60 * 60) / 30000,
-				elevation_start: 0,
-				elevation_end: 0,
-				vehicle: TestVehicle,
-				density_of_air: 1.225,
-			}),
+			distance: route.distance,
+			duration: route.duration,
+			power: totalPower,
 			financial: 0,
 		});
 
@@ -241,8 +240,8 @@ export function createGraphFromRouteAndChargingStations({
 		});
 
 		previous = `b${i}`;
-		previousLonLat = closest.geometry.coordinates;
-	});
+		previousLonLat = closestIntersection.geometry.coordinates;
+	}
 
 	// add node for destination
 	g.addNode('d');
