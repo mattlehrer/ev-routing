@@ -135,14 +135,21 @@ export function createGraphFromRouteAndChargingStations({
 	const sortedStations = stations
 		.map((station) => ({
 			...station,
-			closest: findClosestIntersectionOnRouteToChargingStation({ intersections, station }),
+			closestIntersection: findClosestIntersectionOnRouteToChargingStation({
+				intersections,
+				station,
+			}),
 		}))
-		.sort((a, b) => a.closest.properties.featureIndex - b.closest.properties.featureIndex);
+		.sort(
+			(a, b) =>
+				a.closestIntersection.properties.featureIndex -
+				b.closestIntersection.properties.featureIndex,
+		);
 
 	//  for each station,
 	sortedStations.forEach((station, i) => {
-		//  find the closest intersection on the route
-		const closest = station.closest;
+		//  use the closest intersection on the route
+		const closest = station.closestIntersection;
 
 		//  add a node for that intersection - ai
 		g.addNode(`a${i}`, { type: 'a', coordinates: closest.geometry.coordinates });
