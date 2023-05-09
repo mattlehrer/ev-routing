@@ -21,7 +21,7 @@ import nearestPoint from '@turf/nearest-point';
 import Heap from 'heap-js';
 import type { Link } from 'ngraph.graph';
 import newGraph from 'ngraph.graph';
-import type { ChargingStationAPIStation, ChargingStationBasic } from './charging_stations';
+import type { ChargingStationBasic, getPricingForChargingStations } from './charging_stations';
 import {
 	calcPowerForRouteWithVehicle,
 	getRoute,
@@ -125,7 +125,7 @@ export async function createGraphFromRouteAndChargingStations({
 	overheadDuration = 5 * 60, // 5 minutes
 }: {
 	intersections: ReturnType<typeof convertRouteFromStepsToIntersections>;
-	stations: ChargingStationAPIStation[];
+	stations: Awaited<ReturnType<typeof getPricingForChargingStations>>;
 	overheadDuration?: number;
 }) {
 	const g = newGraph<NodeType>();
@@ -151,6 +151,8 @@ export async function createGraphFromRouteAndChargingStations({
 
 	//  for each station,
 	for (const [i, station] of sortedStations.entries()) {
+		if (!station.outletList || !station.outletList.length) continue;
+
 		//  use the closest intersection on the route
 		const { closestIntersection } = station;
 
@@ -175,7 +177,7 @@ export async function createGraphFromRouteAndChargingStations({
 		previous = `a${i}`;
 
 		//  add a node for the station - ii
-		g.addNode(`i${i}`, { type: 'i', station });
+		g.addNode(`i${i}`, { type: 'i', station: station.slug });
 
 		let route = await getRoute({
 			origin: closestIntersection.geometry.coordinates as [number, number],
@@ -194,16 +196,18 @@ export async function createGraphFromRouteAndChargingStations({
 		// add a node for oi that will have edges from all battery levels and back to the route
 		g.addNode(`o${i}`);
 
-		// TODO: factor in multiple outlets per station, different charging rates and prices
-		for (const outlet of station.outletList) {
+		for (const outletType of station.outletList) {
 			for (let j = 10; j <= 100; j += 10) {
-				const chargeLevel = `c${i}-${j}-${outlet.capacity}`;
+				const chargeLevel = `c${i}-${j}-${outletType.capacity}`;
 				//  add a node for each charge level
 				g.addNode(chargeLevel, {
 					type: 'c',
 					chargeLevel: j,
-					cost: outlet.costKwh,
-					current: outlet.capacity,
+					// TODO: implement cost per minute in types and cost function
+					cost: outletType.costKwh,
+					// costKwh: outletType.costKwh,
+					// costPerMin: outletType.costPerMin,
+					current: outletType.capacity,
 				});
 
 				//  add edges from the station to each battery level
@@ -379,7 +383,7 @@ type NodeType =
 	  }
 	| {
 			type: 'i';
-			station: ChargingStationBasic;
+			station: string;
 	  }
 	| {
 			type: 'c';

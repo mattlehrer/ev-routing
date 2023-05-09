@@ -69,7 +69,7 @@ export async function getChargingStationsAlongRoute({
 }
 
 export async function getPricingForChargingStations(stations: Array<ChargingStationBasic>) {
-	const stationSlugs = stations.map((station) => station.slug).slice(0, 1);
+	const stationSlugs = stations.map((station) => station.slug);
 	const stationResponses = await Promise.all(
 		stationSlugs.map((slug) =>
 			fetch(`${CHARGING_STATION_API_BASE_URL}/station/${slug}`, chargingStationAPIFetchOptions),
@@ -91,8 +91,8 @@ export async function getPricingForChargingStations(stations: Array<ChargingStat
 		);
 
 		// console.log({
-		// 	station: JSON.stringify(stationData[1], null, 2),
-		// 	status: JSON.stringify(statusData[1], null, 2),
+		// 	stations: JSON.stringify(stationData, null, 2),
+		// 	statuses: JSON.stringify(statusData, null, 2),
 		// });
 
 		const stationDataWithStationStatus = stationData.map((station, i) => {
@@ -102,12 +102,49 @@ export async function getPricingForChargingStations(stations: Array<ChargingStat
 					...list,
 					outlets: list.outlets.map((outlet) => ({
 						...outlet,
-						pricing: Array.isArray(statusData[i])
-							? statusData[i].find((outletStatus) => outletStatus.id === outlet.identifier)
-							: {},
+						pricing: statusData[i].find((outletStatus) => outletStatus.id === outlet.identifier),
 					})),
 				})),
 			};
+		});
+
+		// save max price for each station
+		stationDataWithStationStatus.forEach((station) => {
+			station.outletList.forEach((outletType) => {
+				if (outletType.costKwh) {
+					// do nothing
+				} else if (outletType.outlets.some((outlet) => outlet.pricing?.free)) {
+					outletType.costKwh = 0;
+				} else if (outletType.costMin && outletType.costMin > 0) {
+					outletType.costKwh = outletType.costMin;
+				} else {
+					const minKwh = Math.min(
+						...outletType.outlets.map((outlet) => outlet.costKwh),
+						...outletType.outlets.map((outlet) => outlet.costMin),
+						0,
+					);
+					if (minKwh > 0) {
+						outletType.costKwh = minKwh;
+					} else if (station.chargeInfoLocal) {
+						// parse chargeInfoLocal - need find out how many formats it could be in
+						const re = /upp till (\d*) kW: (\d*,\d*) kr\/kWh/g;
+						const matches = [...station.chargeInfoLocal.matchAll(re)];
+						if (matches && matches.length > 0) {
+							// find the right price for the outlet type
+							let i = 0;
+							let [, maxKw, price] = matches[i];
+							while (outletType.capacity <= parseInt(maxKw) && i < matches.length - 1) {
+								i++;
+								[, maxKw, price] = matches[i];
+							}
+							outletType.costKwh = parseFloat(price.replace(',', '.'));
+						} else {
+							// some other technique for parsing?
+							outletType.costKwh = undefined;
+						}
+					}
+				}
+			});
 		});
 
 		const output = stations.map((station) => ({
@@ -277,7 +314,7 @@ type ChargingOutlet = {
 type OutletList = {
 	capacity: number;
 	costCurrency: string;
-	costKwh: number;
+	costKwh: number | undefined;
 	costMin: number;
 	count: number;
 	current: number;
