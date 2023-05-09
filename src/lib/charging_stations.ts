@@ -225,13 +225,7 @@ export type ChargingStationAPILatLonResponse = Array<{
 	distance: number;
 }>;
 
-export type ChargingStationAPIStation = {
-	slug: string;
-	title: string;
-	location: {
-		latitude: number;
-		longitude: number;
-	};
+export interface ChargingStationAPIStation extends ChargingStationBasic {
 	description: string;
 	comment: string;
 	contact: string;
@@ -250,7 +244,6 @@ export type ChargingStationAPIStation = {
 	operatorPricingInfo: string;
 	chargeInfoLocal: string;
 	chargeInfoEn: string;
-	owner: string;
 	access: string;
 	reservation: string;
 	realtime: number;
@@ -261,13 +254,11 @@ export type ChargingStationAPIStation = {
 	openingHours: string;
 	elevation: number;
 	stationType: string;
-	maxCapacity: number;
 	photos: number;
 	comments: number;
-	status: number;
 	outletList: OutletList[];
 	outletCount: number;
-};
+}
 
 type ChargingOutlet = {
 	plug: string;
