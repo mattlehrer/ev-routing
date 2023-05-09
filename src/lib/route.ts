@@ -13,7 +13,7 @@ export function getRoute(data: {
 	destination: [number, number];
 }): Promise<Route> {
 	return new Promise((resolve, reject) => {
-		console.log({ data });
+		// console.log({ data });
 		const [olat, olon] = data.origin;
 		const [dlat, dlon] = data.destination;
 		osrm.route(
