@@ -21,7 +21,7 @@ import nearestPoint from '@turf/nearest-point';
 import Heap from 'heap-js';
 import type { Link } from 'ngraph.graph';
 import newGraph from 'ngraph.graph';
-import type { ChargingStationBasic } from './charging_stations';
+import type { ChargingStationAPIStation, ChargingStationBasic } from './charging_stations';
 import {
 	calcPowerForRouteWithVehicle,
 	getRoute,
@@ -37,7 +37,7 @@ export function findPathInGraphWithCostFunction({
 	d = 'd',
 	minSoC = 0.1 * TestVehicle.battery_capacity,
 }: {
-	g: ReturnType<typeof createGraphFromRouteAndChargingStations>;
+	g: Awaited<ReturnType<typeof createGraphFromRouteAndChargingStations>>;
 	type: 'cumulativeDuration' | 'cumulativePower' | 'cumulativeFinancialCost' | 'cumulativeDistance';
 	initialSoC: number;
 	s?: string;
@@ -117,7 +117,7 @@ export function findPathInGraphWithCostFunction({
  * @param intersections the intersections along the route
  * @param stations the list of charging stations
  * @param overheadDuration the time it takes to enter/exit the vehicle, set up payment, etc.
- * @returns the constructed graph
+ * @returns a Promise of the constructed graph
  */
 export async function createGraphFromRouteAndChargingStations({
 	intersections,
@@ -125,7 +125,7 @@ export async function createGraphFromRouteAndChargingStations({
 	overheadDuration = 5 * 60, // 5 minutes
 }: {
 	intersections: ReturnType<typeof convertRouteFromStepsToIntersections>;
-	stations: ChargingStationBasic[];
+	stations: ChargingStationAPIStation[];
 	overheadDuration?: number;
 }) {
 	const g = newGraph<NodeType>();
@@ -195,25 +195,32 @@ export async function createGraphFromRouteAndChargingStations({
 		g.addNode(`o${i}`);
 
 		// TODO: factor in multiple outlets per station, different charging rates and prices
-		for (let j = 10; j <= 100; j += 10) {
-			const chargeLevel = `c${i}-${j}`;
-			//  add a node for each charge level
-			g.addNode(chargeLevel), { type: 'c', chargeLevel: j };
+		for (const outlet of station.outletList) {
+			for (let j = 10; j <= 100; j += 10) {
+				const chargeLevel = `c${i}-${j}-${outlet.capacity}`;
+				//  add a node for each charge level
+				g.addNode(chargeLevel, {
+					type: 'c',
+					chargeLevel: j,
+					cost: outlet.costKwh,
+					current: outlet.capacity,
+				});
 
-			//  add edges from the station to each battery level
-			g.addLink(`i${i}`, chargeLevel, {
-				distance: 0,
-				duration: undefined, // will be calculated based on starting and ending SoC
-				power: 0, // changes SoC but does not consume energy
-				financial: undefined, // will be calculated based on starting and ending SoC
-			});
+				//  add edges from the station to each battery level
+				g.addLink(`i${i}`, chargeLevel, {
+					distance: 0,
+					duration: undefined, // will be calculated based on starting and ending SoC
+					power: 0, // changes SoC but does not consume energy
+					financial: undefined, // will be calculated based on starting and ending SoC
+				});
 
-			g.addLink(chargeLevel, `o${i}`, {
-				distance: 0,
-				duration: overheadDuration, // for entering/leaving the vehicle, setting up charging, etc.
-				power: 0,
-				financial: 0,
-			});
+				g.addLink(chargeLevel, `o${i}`, {
+					distance: 0,
+					duration: overheadDuration, // for entering/leaving the vehicle, setting up charging, etc.
+					power: 0,
+					financial: 0,
+				});
+			}
 		}
 
 		// add a node for bi that has edges from ai and oi, same location as ai
@@ -374,6 +381,8 @@ type NodeType =
 	| {
 			type: 'c';
 			chargeLevel: number;
+			cost: number;
+			current: number;
 	  }
 	| {
 			type: 'o';
