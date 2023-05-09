@@ -22,6 +22,9 @@ dependencies:
   ngraph.graph:
     specifier: ^20.0.1
     version: 20.0.1
+  ngraph.tojson:
+    specifier: ^1.2.0
+    version: 1.2.0
 
 devDependencies:
   '@playwright/test':
@@ -1964,6 +1967,10 @@ packages:
     resolution: {integrity: sha512-VFsQ+EMkT+7lcJO1QP8Ik3w64WbHJl27Q53EO9hiFU9CRyxJ8HfcXtfWz/U8okuoYKDctbciL6pX3vG5dt1rYA==}
     dependencies:
       ngraph.events: 1.2.2
+    dev: false
+
+  /ngraph.tojson@1.2.0:
+    resolution: {integrity: sha512-CIuKzC7dUfS5KeRWql5seedzvQCjeWhOdlL8fGEIVh4FR6x+FbLbZCRtds96Y8MjxAfU1kcg6QdWjHgm0u+cMw==}
     dev: false
 
   /node-fetch@2.6.9:

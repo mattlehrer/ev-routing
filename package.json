@@ -53,6 +53,7 @@
 		"@turf/nearest-point": "^6.5.0",
 		"heap-js": "^2.2.0",
 		"humanize-duration": "^3.28.0",
-		"ngraph.graph": "^20.0.1"
+		"ngraph.graph": "^20.0.1",
+		"ngraph.tojson": "^1.2.0"
 	}
 }

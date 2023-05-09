@@ -267,6 +267,9 @@ export async function createGraphFromRouteAndChargingStations({
 		financial: 0,
 	});
 
+	// const json = toJson(g);
+	// console.log({ graph: json });
+
 	return g;
 }
 
