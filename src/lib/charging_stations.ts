@@ -13,7 +13,7 @@ export async function getChargingStationsAlongRoute({
 	destination: LatLonPair;
 	maxDetour?: number;
 	getPricing?: boolean;
-}): Promise<ChargingStationAPIRouteResponse> {
+}) {
 	const [olat, olon] = origin;
 	const [dlat, dlon] = destination;
 
