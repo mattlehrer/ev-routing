@@ -115,33 +115,42 @@ export async function getPricingForChargingStations(stations: Array<ChargingStat
 					// do nothing
 				} else if (outletType.outlets.some((outlet) => outlet.pricing?.free)) {
 					outletType.costKwh = 0;
-				} else if (outletType.costMin && outletType.costMin > 0) {
-					outletType.costKwh = outletType.costMin;
+					if (!outletType.costMin) {
+						outletType.costMin = 0;
+					}
 				} else {
-					const minKwh = Math.min(
-						...outletType.outlets.map((outlet) => outlet.costKwh),
-						...outletType.outlets.map((outlet) => outlet.costMin),
-						0,
-					);
+					const minKwh = Math.min(...outletType.outlets.map((outlet) => outlet.costKwh), 0);
+					const minPerMin = Math.min(...outletType.outlets.map((outlet) => outlet.costMin), 0);
 					if (minKwh > 0) {
 						outletType.costKwh = minKwh;
+						outletType.costMin = minPerMin;
 					} else if (station.chargeInfoLocal) {
 						// parse chargeInfoLocal - need find out how many formats it could be in
-						const re = /upp till (\d*) kW: (\d*,\d*) kr\/kWh/g;
-						const matches = [...station.chargeInfoLocal.matchAll(re)];
-						if (matches && matches.length > 0) {
+
+						const perMinRegex = / (\d*,?\d*) kr\/min/g;
+						const perMinMatches = [...station.chargeInfoLocal.matchAll(perMinRegex)];
+						if (perMinMatches && perMinMatches.length > 0) {
+							outletType.costMin = parseFloat(perMinMatches[0][1].replace(',', '.'));
+						}
+
+						const perKWregex = /upp till (\d*) kW: (\d*,\d*) kr\/kWh/g;
+						const perKWmatches = [...station.chargeInfoLocal.matchAll(perKWregex)];
+						if (perKWmatches && perKWmatches.length > 0) {
 							// find the right price for the outlet type
 							let i = 0;
-							let [, maxKw, price] = matches[i];
-							while (outletType.capacity <= parseInt(maxKw) && i < matches.length - 1) {
+							let [, maxKw, price] = perKWmatches[i];
+							while (outletType.capacity <= parseInt(maxKw) && i < perKWmatches.length - 1) {
 								i++;
-								[, maxKw, price] = matches[i];
+								[, maxKw, price] = perKWmatches[i];
 							}
 							outletType.costKwh = parseFloat(price.replace(',', '.'));
 						} else {
 							// some other technique for parsing?
 							outletType.costKwh = undefined;
 						}
+					} else {
+						outletType.costKwh = undefined;
+						outletType.costMin = undefined;
 					}
 				}
 			});
@@ -315,7 +324,7 @@ type OutletList = {
 	capacity: number;
 	costCurrency: string;
 	costKwh: number | undefined;
-	costMin: number;
+	costMin: number | undefined;
 	count: number;
 	current: number;
 	outlets: ChargingOutlet[];
