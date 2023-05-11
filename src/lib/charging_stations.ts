@@ -2,6 +2,7 @@ import { CHARGING_STATION_API_BASE_URL, CHARGING_STATION_API_SITE_URL } from '$e
 import { error } from '@sveltejs/kit';
 import type { LatLonPair } from './lat_lon';
 import { placeData } from './place_data';
+import { printProgress } from './utils/progress';
 
 export async function getChargingStationsAlongRoute({
 	origin,
@@ -69,32 +70,50 @@ export async function getChargingStationsAlongRoute({
 }
 
 export async function getPricingForChargingStations(stations: Array<ChargingStationBasic>) {
+	console.log(`getting data for ${stations.length} stations`);
+	printProgress(0);
+	let progressCount = 0;
+
 	const stationSlugs = stations.map((station) => station.slug);
-	const stationResponses = await Promise.all(
-		stationSlugs.map((slug) =>
-			fetch(`${CHARGING_STATION_API_BASE_URL}/station/${slug}`, chargingStationAPIFetchOptions),
-		),
-	);
-	const statusResponses = await Promise.all(
-		stationSlugs.map((slug) =>
-			fetch(`${CHARGING_STATION_API_BASE_URL}/status/${slug}`, chargingStationAPIFetchOptions),
-		),
-	);
 
-	// console.log({ stationResponses, statusResponses });
+	const stationData: ChargingStationAPIStation[] = [];
+	const statusData: ChargingStationAPIStationStatus[] = [];
+	for (const slug of stationSlugs) {
+		progressCount++;
+
+		const resStation = await fetch(
+			`${CHARGING_STATION_API_BASE_URL}/station/${slug}`,
+			chargingStationAPIFetchOptions,
+		);
+		try {
+			stationData.push(await resStation.json());
+		} catch (error) {
+			console.error(error);
+		}
+
+		// Wait for 2 seconds before making the next request
+		await new Promise((resolve) => setTimeout(resolve, randomWait()));
+
+		const resStatus = await fetch(
+			`${CHARGING_STATION_API_BASE_URL}/status/${slug}`,
+			chargingStationAPIFetchOptions,
+		);
+		try {
+			statusData.push(await resStatus.json());
+		} catch (error) {
+			console.error(error);
+		}
+
+		printProgress((progressCount / stationSlugs.length) * 100);
+
+		// Wait for 2 seconds before making the next request
+		await new Promise((resolve) => setTimeout(resolve, randomWait()));
+	}
+
+	console.log();
+	console.log('stations: ', stationData.length, 'statuses: ', statusData.length);
+
 	try {
-		const stationData: ChargingStationAPIStation[] = await Promise.all(
-			stationResponses.map((res) => res.json()),
-		);
-		const statusData: ChargingStationAPIStationStatus[] = await Promise.all(
-			statusResponses.map((res) => res.json()),
-		);
-
-		// console.log({
-		// 	stations: JSON.stringify(stationData, null, 2),
-		// 	statuses: JSON.stringify(statusData, null, 2),
-		// });
-
 		const stationDataWithStationStatus = stationData.map((station, i) => {
 			return {
 				...station,
@@ -102,7 +121,9 @@ export async function getPricingForChargingStations(stations: Array<ChargingStat
 					...list,
 					outlets: list.outlets.map((outlet) => ({
 						...outlet,
-						pricing: statusData[i].find((outletStatus) => outletStatus.id === outlet.identifier),
+						pricing: Array.isArray(statusData[i])
+							? statusData[i].find((outletStatus) => outletStatus.id === outlet.identifier)
+							: undefined,
 					})),
 				})),
 			};
@@ -178,7 +199,7 @@ const chargingStationAPIFetchOptions = {
 		origin: CHARGING_STATION_API_SITE_URL,
 		pragma: 'no-cache',
 		referer: `${CHARGING_STATION_API_SITE_URL}/`,
-		'sec-ch-ua': '"Chromium";v="111", "Not(A:Brand";v="8"',
+		'sec-ch-ua': '"Chromium";v="113", "Not-A.Brand";v="24"',
 		'sec-ch-ua-mobile': '?0',
 		'sec-ch-ua-platform': ' "macOS"',
 		'sec-fetch-dest': 'empty',
@@ -188,6 +209,8 @@ const chargingStationAPIFetchOptions = {
 			'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/111.0.0.0 Safari/537.36',
 	},
 };
+
+const randomWait = () => Math.floor(Math.random() * (1500 - 750) + 1250);
 
 export type ChargingStationAPIRouteResponse = {
 	type: 'FeatureCollection';

@@ -1,4 +1,7 @@
-import { getChargingStationsAlongRoute } from '$lib/charging_stations';
+import {
+	getChargingStationsAlongRoute,
+	type ChargingStationAPIRouteResponse,
+} from '$lib/charging_stations';
 import type { LatLonPair } from '$lib/lat_lon';
 import {
 	calcPowerForRouteWithVehicle,
@@ -42,18 +45,22 @@ export const load = (async ({ url }) => {
 		}
 	}
 
+	let chargingStations: ChargingStationAPIRouteResponse | undefined = undefined;
 	if (route && origin && destination) {
-		const chargingStations = await getChargingStationsAlongRoute({
+		console.log('getting charging station data');
+		chargingStations = await getChargingStationsAlongRoute({
 			origin,
 			destination,
 			getPricing: true,
 		});
 
+		console.log('creating graph');
 		const g = await createGraphFromRouteAndChargingStations({
 			intersections: convertRouteFromStepsToIntersections(route),
 			stations: chargingStations.stations,
 		});
 
+		console.log('finding path');
 		const path = findPathInGraphWithCostFunction({
 			g,
 			type: 'cumulativeFinancialCost',
@@ -69,15 +76,15 @@ export const load = (async ({ url }) => {
 		route,
 		totalPower,
 		streamed: {
-			stationData:
-				route &&
-				origin &&
-				destination &&
-				getChargingStationsAlongRoute({
-					origin,
-					destination,
-					getPricing: true,
-				}),
+			stationData: chargingStations,
+			// 	route &&
+			// 	origin &&
+			// 	destination &&
+			// 	getChargingStationsAlongRoute({
+			// 		origin,
+			// 		destination,
+			// 		getPricing: true,
+			// 	}),
 		},
 	};
 }) satisfies PageServerLoad;
