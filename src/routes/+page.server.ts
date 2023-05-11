@@ -6,7 +6,10 @@ import {
 	getRoute,
 	type Route,
 } from '$lib/route';
-import { createGraphFromRouteAndChargingStations } from '$lib/station_graph';
+import {
+	createGraphFromRouteAndChargingStations,
+	findPathInGraphWithCostFunction,
+} from '$lib/station_graph';
 import { error } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -46,9 +49,15 @@ export const load = (async ({ url }) => {
 			getPricing: true,
 		});
 
-		createGraphFromRouteAndChargingStations({
+		const g = await createGraphFromRouteAndChargingStations({
 			intersections: convertRouteFromStepsToIntersections(route),
 			stations: chargingStations.stations,
+		});
+
+		const path = findPathInGraphWithCostFunction({
+			g,
+			type: 'cumulativeFinancialCost',
+			initialSoC: 20,
 		});
 	}
 
