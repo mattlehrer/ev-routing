@@ -45,12 +45,12 @@ export function getRoute(data: {
 export function convertRouteFromStepsToIntersections(route: OSRM.Route) {
 	console.log({ route });
 	// sum up the distance and duration of each step to get the total distance and duration of the route
-	let distance = 0;
-	let duration = 0;
-	for (const leg of route.legs) {
-		distance += leg.distance;
-		duration += leg.duration;
-	}
+	// let distance = 0;
+	// let duration = 0;
+	// for (const leg of route.legs) {
+	// 	distance += leg.distance;
+	// 	duration += leg.duration;
+	// }
 
 	const modRoute = [];
 	let curr = 0;
@@ -60,7 +60,9 @@ export function convertRouteFromStepsToIntersections(route: OSRM.Route) {
 	let currDuration = 0;
 	for (const leg of route.legs) {
 		for (const step of leg.steps) {
+			console.log({ step });
 			for (const intersection of step.intersections) {
+				console.log({ intersection });
 				while (
 					!compare(route.geometry.coordinates[curr], intersection.location) &&
 					curr < route.geometry.coordinates.length
@@ -69,8 +71,8 @@ export function convertRouteFromStepsToIntersections(route: OSRM.Route) {
 						currDistance += leg.annotation.distance[curr - 1];
 						currDuration += leg.annotation.duration[curr - 1];
 					}
-					curr++;
 					console.log({ curr, currDistance, currDuration });
+					curr++;
 				}
 				if (!compare(route.geometry.coordinates[curr], intersection.location)) {
 					throw new Error("Couldn't find intersection in route.geometry.coordinates");
@@ -108,7 +110,7 @@ export function convertRouteFromStepsToIntersections(route: OSRM.Route) {
 		modDuration += segment.duration;
 	}
 
-	console.log({ distance, duration, modDistance, modDuration });
+	console.log({ modDistance, modDuration });
 
 	return modRoute;
 }
