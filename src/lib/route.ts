@@ -1,4 +1,5 @@
 import OSRM from '@project-osrm/osrm';
+import compare from 'just-compare';
 import { calc_route_segment_battery_power_flow } from './battery_sim/route_segment_battery_consumption';
 import { TestVehicle } from './vehicles/TestVehicle';
 const osrm = new OSRM({ path: 'osrmdata/sweden-latest.osrm', algorithm: 'MLD' });
@@ -11,7 +12,7 @@ const osrm = new OSRM({ path: 'osrmdata/sweden-latest.osrm', algorithm: 'MLD' })
 export function getRoute(data: {
 	origin: [number, number];
 	destination: [number, number];
-}): Promise<Route> {
+}): Promise<OSRM.Route> {
 	return new Promise((resolve, reject) => {
 		// console.log({ data });
 		const [olat, olon] = data.origin;
@@ -41,19 +42,49 @@ export function getRoute(data: {
 	});
 }
 
-export function convertRouteFromStepsToIntersections(route: Route) {
-	const modRoute = [];
+export function convertRouteFromStepsToIntersections(route: OSRM.Route) {
+	console.log({ route });
+	// sum up the distance and duration of each step to get the total distance and duration of the route
+	let distance = 0;
+	let duration = 0;
 	for (const leg of route.legs) {
-		let i = 0;
+		distance += leg.distance;
+		duration += leg.duration;
+	}
+
+	const modRoute = [];
+	let curr = 0;
+	let prevDistance = 0;
+	let prevDuration = 0;
+	let currDistance = 0;
+	let currDuration = 0;
+	for (const leg of route.legs) {
 		for (const step of leg.steps) {
 			for (const intersection of step.intersections) {
+				while (
+					!compare(route.geometry.coordinates[curr], intersection.location) &&
+					curr < route.geometry.coordinates.length
+				) {
+					if (curr > 0) {
+						currDistance += leg.annotation.distance[curr - 1];
+						currDuration += leg.annotation.duration[curr - 1];
+					}
+					curr++;
+					console.log({ curr, currDistance, currDuration });
+				}
+				if (!compare(route.geometry.coordinates[curr], intersection.location)) {
+					throw new Error("Couldn't find intersection in route.geometry.coordinates");
+				} else if (curr > 0) {
+					currDistance += leg.annotation.distance[curr - 1];
+					currDuration += leg.annotation.duration[curr - 1];
+				}
 				modRoute.push({
 					intersection,
-					distance: leg.annotation.distance[i],
-					duration: leg.annotation.duration[i],
+					distance: currDistance - prevDistance,
+					duration: currDuration - prevDuration,
 					power: calc_route_segment_battery_power_flow({
-						distance: leg.annotation.distance[i],
-						duration: leg.annotation.duration[i],
+						distance: currDistance - prevDistance,
+						duration: currDuration - prevDuration,
 						elevation_start: 0,
 						elevation_end: 0,
 						vehicle: TestVehicle,
@@ -61,10 +92,23 @@ export function convertRouteFromStepsToIntersections(route: Route) {
 					}),
 					cost: 0,
 				});
-				i++;
+
+				prevDistance = currDistance;
+				prevDuration = currDuration;
 			}
+			curr++;
 		}
 	}
+
+	// sum up the distance and duration for the modRoute
+	let modDistance = 0;
+	let modDuration = 0;
+	for (const segment of modRoute) {
+		modDistance += segment.distance;
+		modDuration += segment.duration;
+	}
+
+	console.log({ distance, duration, modDistance, modDuration });
 
 	return modRoute;
 }
