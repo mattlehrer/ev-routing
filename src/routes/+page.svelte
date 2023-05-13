@@ -303,8 +303,18 @@
 								{#if routeData?.legs?.[0].summary}
 									<p>{routeData.legs[0].summary}</p>
 								{/if}
-								<p>{formatDistance(routeData.distance)}</p>
-								<p>{formatDuration(routeData.duration)}</p>
+								<p>
+									{routeData.legs[0].annotation.distance.reduce((a, c) => a + c).toFixed(2)} m
+								</p>
+								<p>
+									{routeData.legs[0].annotation.duration.reduce((a, c) => a + c).toFixed(2)} s
+								</p>
+								<!-- <p>
+									{formatDistance(routeData.legs[0].annotation.distance.reduce((a, c) => a + c))}
+								</p>
+								<p>
+									{formatDuration(routeData.legs[0].annotation.duration.reduce((a, c) => a + c))}
+								</p> -->
 								{#if totalPower}
 									<p>{formatPower(totalPower)}</p>
 								{/if}
@@ -329,6 +339,9 @@
 												{#if step.power}
 													<p>using {formatPower(step.power)}</p>
 												{/if}
+												<p>
+													in {step.duration.toFixed(1)} seconds
+												</p>
 											</div>
 										{/each}
 									</div>
