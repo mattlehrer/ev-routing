@@ -19,6 +19,7 @@ import type { Coordinate } from '@project-osrm/osrm';
 import { featureCollection, point, type Position } from '@turf/helpers';
 import nearestPoint from '@turf/nearest-point';
 import Heap from 'heap-js';
+import compare from 'just-compare';
 import newGraph from 'ngraph.graph';
 // import toJson from 'ngraph.tojson';
 import type { ChargingStationBasic, getPricingForChargingStations } from './charging_stations';
@@ -63,6 +64,7 @@ export function findPathInGraphWithCostFunction({
 
 	lTemp.add({
 		cumulativeDuration: 0,
+		cumulativeDistance: 0,
 		cumulativePower: 0,
 		cumulativeFinancialCost: 0,
 		precedingNode: null,
@@ -111,11 +113,23 @@ export function findPathInGraphWithCostFunction({
 					});
 
 					// charge up (negative power)
-					edgePower = -1 * ((node.data.chargeLevel / 100) * batteryCapacity - soc);
+					if (edgeDuration > 0) {
+						edgePower = -1_000 * (node.data.chargeLevel / 100) * batteryCapacity - soc;
+						console.log({ soc, edgeDuration, edgePower });
 
-					// calculate the financial cost of charging
-					edgeFinancialCost =
-						(edgeDuration * (node.data.costMin ?? 0)) / 60 - edgePower * (node.data.costKwh ?? 0);
+						// calculate the financial cost of charging
+						edgeFinancialCost =
+							-(edgeDuration * (node.data.costMin ?? 0)) / 60 -
+							(edgePower * (node.data.costKwh ?? 0)) / 1_000;
+					}
+
+					// console.log({
+					// 	edgePower,
+					// 	edgeFinancialCost,
+					// 	edgeDuration,
+					// 	costMin: node.data.costMin,
+					// 	costKwh: node.data.costKwh,
+					// });
 				} else if (node.data.type === 'o') {
 					// duration is fixed as overhead in graph construction
 					if (!edge.duration)
@@ -129,10 +143,7 @@ export function findPathInGraphWithCostFunction({
 
 				const newCumulativeDuration = lCurrent.cumulativeDuration + edgeDuration;
 
-				const newCumulativePower = Math.min(
-					batteryCapacity,
-					lCurrent.cumulativePower + edgePower / 1000,
-				);
+				const newCumulativePower = lCurrent.cumulativePower + edgePower / 1_000;
 
 				const newCumulativeFinancialCost = lCurrent.cumulativeFinancialCost + edgeFinancialCost;
 
@@ -140,6 +151,7 @@ export function findPathInGraphWithCostFunction({
 				const newLabel = {
 					currentNode: String(node.id),
 					cumulativeDuration: newCumulativeDuration,
+					cumulativeDistance: lCurrent.cumulativeDistance + edge.distance,
 					cumulativePower: newCumulativePower,
 					cumulativeFinancialCost: newCumulativeFinancialCost,
 					precedingNode: lCurrent.currentNode,
@@ -152,6 +164,8 @@ export function findPathInGraphWithCostFunction({
 				if (initialSoC - newCumulativePower >= minSoC) {
 					// line 9
 					lTemp.add(newLabel);
+				} else {
+					if (newLabel.currentNode === 'd') console.log('skipping because of minSoC', newLabel);
 				}
 			},
 			true, // only outgoing edges
@@ -169,7 +183,11 @@ export function findPathInGraphWithCostFunction({
 		path.push(lCurrent);
 		let current = lCurrent;
 		while (current?.precedingNode) {
-			const prev = perm.find((p) => p.currentNode === current?.precedingNode);
+			const prev = perm.find(
+				(p) =>
+					p.currentNode === current?.precedingNode &&
+					p.currentLabelIndex === current?.prevLabelIndex,
+			);
 			if (!prev) throw new Error('prev is undefined');
 			path.push(prev);
 			current = prev;
@@ -179,6 +197,8 @@ export function findPathInGraphWithCostFunction({
 
 		return lCurrent;
 	} else {
+		const perm = lPerm.toArray().slice(-10);
+		console.log({ perm });
 		// line 14: “No feasible solution found.”
 		console.error('No feasible solution found.');
 		return null;
@@ -232,8 +252,6 @@ export async function createGraphFromRouteAndChargingStations({
 		//  add a node for that intersection - ai
 		g.addNode(`a${i}`, { type: 'a', coordinates: closestIntersection.geometry.coordinates });
 
-		// console.log({ closest, intersections });
-
 		const statsFromPrevToA = cumulativeStatsAlongRoute({
 			intersections,
 			start: previousLonLat,
@@ -270,7 +288,11 @@ export async function createGraphFromRouteAndChargingStations({
 		g.addNode(`o${i}`, { type: 'o' });
 
 		for (const outletType of station.outletList) {
-			for (let j = 10; j <= 100; j += 10) {
+			if (!outletType.capacity) continue;
+			if (!outletType.costKwh && !outletType.costMin) continue;
+			if (outletType.capacity < 11) continue;
+
+			for (let j = 20; j <= 100; j += 20) {
 				const chargeLevelLabel = `c${i}-${j}-${outletType.capacity}`;
 				//  add a node for each charge level
 				g.addNode(chargeLevelLabel, {
@@ -299,8 +321,9 @@ export async function createGraphFromRouteAndChargingStations({
 		// add a node for bi that has edges from ai and oi, same location as ai
 		g.addNode(`b${i}`, { type: 'b', coordinates: closestIntersection.geometry.coordinates });
 
+		const [closestLon, closestLat] = closestIntersection.geometry.coordinates as [number, number];
 		route = await getRoute({
-			origin: closestIntersection.geometry.coordinates as [number, number],
+			origin: [closestLat, closestLon],
 			destination: [station.location.latitude, station.location.longitude],
 		});
 		({ totalPower } = calcPowerForRouteWithVehicle(route));
@@ -340,6 +363,7 @@ export async function createGraphFromRouteAndChargingStations({
 		power: statsFromPrevToA.power,
 	});
 
+	console.log({ nodes: g.getNodeCount(), edges: g.getLinkCount() });
 	// const json = toJson(g);
 	// console.log({ graph: json });
 
@@ -370,7 +394,7 @@ export function findClosestIntersectionOnRouteToChargingStation({
 
 /**
  * Sum stats about a route between two positions.
- * @param route The route to search
+ * @param intersections The intersections of the route to search
  * @param start The start position
  * @param end The end position
  * @returns An object with the distance, in meters, duration, in s, and the power use, in Wh
@@ -384,54 +408,32 @@ export function cumulativeStatsAlongRoute({
 	start: Position;
 	end: Position;
 }): { distance: number; duration: number; power: number } {
+	// console.log({ start, end });
+	let i = 0;
+	while (!compare(intersections[i].intersection.location, start) && i < intersections.length) {
+		i++;
+	}
+	if (i === intersections.length) {
+		throw new Error('Start position not found in intersections');
+	}
+
+	let j = 0;
+	while (!compare(intersections[j].intersection.location, end) && j < intersections.length) {
+		j++;
+	}
+	if (j === intersections.length) {
+		throw new Error('End position not found in intersections');
+	}
+
 	let distance = 0;
 	let duration = 0;
 	let power = 0;
-
-	// console.log({ start, end });
-
-	if (start[0] === end[0] && start[1] === end[1]) {
-		return { distance, duration, power };
+	for (let k = i + 1; k <= j; k++) {
+		distance += intersections[k].distance;
+		duration += intersections[k].duration;
+		power += intersections[k].power;
 	}
-
-	let isAfterStart = false;
-
-	for (const intersection of intersections) {
-		if (!isAfterStart) {
-			//  if the intersection is the start position,
-			if (
-				intersection.intersection.location[0] === start[0] &&
-				intersection.intersection.location[1] === start[1]
-			) {
-				//  set the flag to true
-				isAfterStart = true;
-				// step.distance is the distance to the next maneuver, so we need to start adding now
-				distance += intersection.distance;
-				duration += intersection.duration;
-				power += intersection.power ? intersection.power : 0;
-			}
-		} else {
-			//  if the intersection is the end position,
-			if (
-				intersection.intersection.location[0] === end[0] &&
-				intersection.intersection.location[1] === end[1]
-			) {
-				// break out of the loop and return the stats
-				// break;
-				return { distance, duration, power };
-			} else {
-				distance += intersection.distance;
-				duration += intersection.duration;
-				power += intersection.power ? intersection.power : 0;
-			}
-		}
-	}
-
-	if (!isAfterStart) {
-		throw new Error('Start position not found on route');
-	} else {
-		throw new Error('End position not found on route');
-	}
+	return { distance, duration, power };
 }
 
 /**
@@ -467,15 +469,18 @@ function calculateChargingDuration({
 	const slowerCharge = 0.5;
 
 	return (
-		((0.8 * batteryCapacity - soc) * 3600) / (capacity * efficiency) +
-		((targetSoc / 100 - 0.8) * batteryCapacity * 3600) / (capacity * efficiency * slowerCharge)
+		((0.8 * batteryCapacity - soc) / (capacity * efficiency) +
+			((targetSoc / 100 - 0.8) * batteryCapacity) / (capacity * efficiency * slowerCharge)) *
+		3600 // seconds per hour
 	);
 }
 
 type NodeLabel = {
 	cumulativeDuration: number;
+	cumulativeDistance: number;
 	cumulativePower: number;
 	cumulativeFinancialCost: number;
+	chargingDuration: number;
 	precedingNode: string | null;
 	prevLabelIndex: number; // "which of the labels belonging to the preceding node is relevant for getting the currently considered label"
 	currentNode: string;
