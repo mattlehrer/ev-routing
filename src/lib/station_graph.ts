@@ -77,9 +77,6 @@ export function findPathInGraphWithCostFunction({
 	});
 	let lCurrent: NodeLabel | undefined = undefined;
 
-	const labelIndices: Map<string, number> = new Map();
-	labelIndices.set(s, 0);
-
 	// line 1 from Huber 2015 Algorithm A
 	while (lTemp.size() > 0 && !hasReachedDestination) {
 		// lines 2 & 3
@@ -96,7 +93,10 @@ export function findPathInGraphWithCostFunction({
 				const edge = link.data;
 				if (!lCurrent) throw new Error('lCurrent is undefined');
 
-				const index = labelIndices.get(String(node.id)) ?? 0;
+				const index =
+					lTemp.toArray().filter((l) => l.currentNode === String(node.id)).length +
+					lPerm.toArray().filter((l) => l.currentNode === String(node.id)).length;
+
 				// line 7
 				const newLabel = {
 					currentNode: String(node.id),
@@ -109,7 +109,7 @@ export function findPathInGraphWithCostFunction({
 					chargingStops: lCurrent.chargingStops,
 					precedingNode: lCurrent.currentNode,
 					prevLabelIndex: lCurrent.currentLabelIndex,
-					currentLabelIndex: index + 1,
+					currentLabelIndex: index,
 				};
 				const soc = initialSoC - lCurrent.cumulativePower; // in kWh
 				// lines 5: calculate the duration for this edge
@@ -174,7 +174,6 @@ export function findPathInGraphWithCostFunction({
 				if (initialSoC - newLabel.cumulativePower >= minSoC) {
 					// line 9
 					lTemp.add(newLabel);
-					labelIndices.set(String(node.id), newLabel.currentLabelIndex);
 				}
 			},
 			true, // only outgoing edges
