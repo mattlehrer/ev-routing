@@ -114,12 +114,11 @@ export function findPathInGraphWithCostFunction({
 
 					// charge up (negative power)
 					if (edgeDuration > 0) {
-						edgePower = -1_000 * (node.data.chargeLevel / 100) * batteryCapacity - soc;
-						console.log({ soc, edgeDuration, edgePower });
+						edgePower = -1_000 * ((node.data.chargeLevel / 100) * batteryCapacity - soc);
 
 						// calculate the financial cost of charging
 						edgeFinancialCost =
-							-(edgeDuration * (node.data.costMin ?? 0)) / 60 -
+							(edgeDuration * (node.data.costMin ?? 0)) / 60 -
 							(edgePower * (node.data.costKwh ?? 0)) / 1_000;
 					}
 
@@ -158,7 +157,7 @@ export function findPathInGraphWithCostFunction({
 					prevLabelIndex: lCurrent.currentLabelIndex,
 					currentLabelIndex: lCurrent.currentLabelIndex + 1,
 				};
-				// console.log({ newLabel });
+				if (edgeFinancialCost > 0) console.log(newLabel);
 
 				// line 8
 				if (initialSoC - newCumulativePower >= minSoC) {
@@ -480,7 +479,6 @@ type NodeLabel = {
 	cumulativeDistance: number;
 	cumulativePower: number;
 	cumulativeFinancialCost: number;
-	chargingDuration: number;
 	precedingNode: string | null;
 	prevLabelIndex: number; // "which of the labels belonging to the preceding node is relevant for getting the currently considered label"
 	currentNode: string;
