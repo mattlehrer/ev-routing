@@ -60,9 +60,9 @@ export function convertRouteFromStepsToIntersections(route: OSRM.Route) {
 	let currDuration = 0;
 	for (const leg of route.legs) {
 		for (const step of leg.steps) {
-			console.log({ step });
+			// console.log({ step });
 			for (const intersection of step.intersections) {
-				console.log({ intersection });
+				// console.log({ intersection });
 				while (
 					!compare(route.geometry.coordinates[curr], intersection.location) &&
 					curr < route.geometry.coordinates.length
@@ -71,7 +71,7 @@ export function convertRouteFromStepsToIntersections(route: OSRM.Route) {
 						currDistance += leg.annotation.distance[curr - 1];
 						currDuration += leg.annotation.duration[curr - 1];
 					}
-					console.log({ curr, currDistance, currDuration });
+					// console.log({ curr, currDistance, currDuration });
 					curr++;
 				}
 				if (!compare(route.geometry.coordinates[curr], intersection.location)) {
