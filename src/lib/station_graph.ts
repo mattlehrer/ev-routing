@@ -21,7 +21,7 @@ import nearestPoint from '@turf/nearest-point';
 import Heap from 'heap-js';
 import compare from 'just-compare';
 import newGraph from 'ngraph.graph';
-// import toJson from 'ngraph.tojson';
+import toJson from 'ngraph.tojson';
 import type { ChargingStationBasic, getPricingForChargingStations } from './charging_stations';
 import {
 	calcPowerForRouteWithVehicle,
@@ -67,12 +67,19 @@ export function findPathInGraphWithCostFunction({
 		cumulativeDistance: 0,
 		cumulativePower: 0,
 		cumulativeFinancialCost: 0,
+		chargingDuration: 0,
+		chargingKw: 0,
+		chargingStops: 0,
 		precedingNode: null,
 		prevLabelIndex: 0,
 		currentNode: s,
 		currentLabelIndex: 0,
 	});
 	let lCurrent: NodeLabel | undefined = undefined;
+
+	const labelIndices: Map<string, number> = new Map();
+	labelIndices.set(s, 0);
+
 	// line 1 from Huber 2015 Algorithm A
 	while (lTemp.size() > 0 && !hasReachedDestination) {
 		// lines 2 & 3
@@ -89,13 +96,26 @@ export function findPathInGraphWithCostFunction({
 				const edge = link.data;
 				if (!lCurrent) throw new Error('lCurrent is undefined');
 
+				const index = labelIndices.get(String(node.id)) ?? 0;
+				// line 7
+				const newLabel = {
+					currentNode: String(node.id),
+					cumulativeDuration: lCurrent.cumulativeDuration,
+					cumulativeDistance: lCurrent.cumulativeDistance + edge.distance,
+					cumulativePower: lCurrent.cumulativePower,
+					cumulativeFinancialCost: lCurrent.cumulativeFinancialCost,
+					chargingDuration: lCurrent.chargingDuration,
+					chargingKw: lCurrent.chargingKw,
+					chargingStops: lCurrent.chargingStops,
+					precedingNode: lCurrent.currentNode,
+					prevLabelIndex: lCurrent.currentLabelIndex,
+					currentLabelIndex: index + 1,
+				};
 				const soc = initialSoC - lCurrent.cumulativePower; // in kWh
 				// lines 5: calculate the duration for this edge
 				let edgeDuration = 0;
 				// and 6: calculate the change in power for this edge
 				let edgePower = 0;
-				// and add financial cost to the algorithm
-				let edgeFinancialCost = 0;
 
 				// calculations are based on the edge's end node type
 				if (['a', 'i', 'b', 'd'].includes(node.data.type)) {
@@ -115,11 +135,17 @@ export function findPathInGraphWithCostFunction({
 					// charge up (negative power)
 					if (edgeDuration > 0) {
 						edgePower = -1_000 * ((node.data.chargeLevel / 100) * batteryCapacity - soc);
+						lCurrent.chargingDuration += edgeDuration;
+						lCurrent.chargingKw += -edgePower / 1_000;
+						lCurrent.chargingStops += 1;
 
 						// calculate the financial cost of charging
-						edgeFinancialCost =
+						newLabel.cumulativeFinancialCost =
+							lCurrent.cumulativeFinancialCost +
 							(edgeDuration * (node.data.costMin ?? 0)) / 60 -
 							(edgePower * (node.data.costKwh ?? 0)) / 1_000;
+
+						if (node.data.costKwh === 0) console.log('costKwh is 0', node.data);
 					}
 
 					// console.log({
@@ -140,31 +166,15 @@ export function findPathInGraphWithCostFunction({
 					edgeDuration = edge.duration ?? 0;
 				}
 
-				const newCumulativeDuration = lCurrent.cumulativeDuration + edgeDuration;
+				newLabel.cumulativeDuration = lCurrent.cumulativeDuration + edgeDuration;
 
-				const newCumulativePower = lCurrent.cumulativePower + edgePower / 1_000;
-
-				const newCumulativeFinancialCost = lCurrent.cumulativeFinancialCost + edgeFinancialCost;
-
-				// line 7
-				const newLabel = {
-					currentNode: String(node.id),
-					cumulativeDuration: newCumulativeDuration,
-					cumulativeDistance: lCurrent.cumulativeDistance + edge.distance,
-					cumulativePower: newCumulativePower,
-					cumulativeFinancialCost: newCumulativeFinancialCost,
-					precedingNode: lCurrent.currentNode,
-					prevLabelIndex: lCurrent.currentLabelIndex,
-					currentLabelIndex: lCurrent.currentLabelIndex + 1,
-				};
-				if (edgeFinancialCost > 0) console.log(newLabel);
+				newLabel.cumulativePower = lCurrent.cumulativePower + edgePower / 1_000;
 
 				// line 8
-				if (initialSoC - newCumulativePower >= minSoC) {
+				if (initialSoC - newLabel.cumulativePower >= minSoC) {
 					// line 9
 					lTemp.add(newLabel);
-				} else {
-					if (newLabel.currentNode === 'd') console.log('skipping because of minSoC', newLabel);
+					labelIndices.set(String(node.id), newLabel.currentLabelIndex);
 				}
 			},
 			true, // only outgoing edges
@@ -363,8 +373,8 @@ export async function createGraphFromRouteAndChargingStations({
 	});
 
 	console.log({ nodes: g.getNodeCount(), edges: g.getLinkCount() });
-	// const json = toJson(g);
-	// console.log({ graph: json });
+	const json = toJson(g);
+	console.log({ graph: json });
 
 	return g;
 }
@@ -479,6 +489,9 @@ type NodeLabel = {
 	cumulativeDistance: number;
 	cumulativePower: number;
 	cumulativeFinancialCost: number;
+	chargingDuration: number;
+	chargingKw: number;
+	chargingStops: number;
 	precedingNode: string | null;
 	prevLabelIndex: number; // "which of the labels belonging to the preceding node is relevant for getting the currently considered label"
 	currentNode: string;
