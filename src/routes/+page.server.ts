@@ -61,11 +61,13 @@ export const load = (async ({ url }) => {
 		});
 
 		console.log('finding path');
+		console.time('path for financialCost');
 		const path = findPathInGraphWithCostFunction({
 			g,
 			type: 'cumulativeFinancialCost',
 			initialSoC: 20,
 		});
+		console.timeEnd('path for financialCost');
 	}
 
 	return {
