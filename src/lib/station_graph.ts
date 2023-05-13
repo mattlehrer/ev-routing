@@ -135,9 +135,9 @@ export function findPathInGraphWithCostFunction({
 					// charge up (negative power)
 					if (edgeDuration > 0) {
 						edgePower = -1_000 * ((node.data.chargeLevel / 100) * batteryCapacity - soc);
-						lCurrent.chargingDuration += edgeDuration;
-						lCurrent.chargingKw += -edgePower / 1_000;
-						lCurrent.chargingStops += 1;
+						newLabel.chargingDuration += edgeDuration;
+						newLabel.chargingKw += -edgePower / 1_000;
+						newLabel.chargingStops += 1;
 
 						// calculate the financial cost of charging
 						newLabel.cumulativeFinancialCost =
