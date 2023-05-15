@@ -22,6 +22,7 @@ import Heap from 'heap-js';
 import compare from 'just-compare';
 import newGraph from 'ngraph.graph';
 import toJson from 'ngraph.tojson';
+import { uid } from 'uid';
 import type { ChargingStationBasic, getPricingForChargingStations } from './charging_stations';
 import {
 	calcPowerForRouteWithVehicle,
@@ -49,6 +50,7 @@ export function findPathInGraphWithCostFunction({
 	d = 'd',
 	minSoC = 0.1 * TestVehicle.battery_capacity,
 	batteryCapacity = TestVehicle.battery_capacity,
+	fastMode = true,
 }: {
 	g: Awaited<ReturnType<typeof createGraphFromRouteAndChargingStations>>;
 	type: 'cumulativeDuration' | 'cumulativeFinancialCost';
@@ -57,6 +59,7 @@ export function findPathInGraphWithCostFunction({
 	d?: string;
 	minSoC?: number;
 	batteryCapacity?: number;
+	fastMode?: boolean;
 }) {
 	const lTemp = new Heap<NodeLabel>((a, b) => a[type] - b[type]); // opened nodes
 	const lPerm = new Heap<NodeLabel>((a, b) => a[type] - b[type]); // closed nodes
@@ -71,9 +74,9 @@ export function findPathInGraphWithCostFunction({
 		chargingKw: 0,
 		chargingStops: 0,
 		precedingNode: null,
-		prevLabelIndex: 0,
+		prevLabelIndex: '',
 		currentNode: s,
-		currentLabelIndex: 0,
+		currentLabelIndex: uid(),
 	});
 	let lCurrent: NodeLabel | undefined = undefined;
 
@@ -83,6 +86,11 @@ export function findPathInGraphWithCostFunction({
 		lCurrent = lTemp.pop();
 		if (!lCurrent) throw new Error('lCurrent is undefined');
 		lPerm.add(lCurrent);
+		// if (!(lPerm.size() % 8192)) {
+		// 	process.stdout.cursorTo(0);
+		// 	process.stdout.write(`Temp Labels: ${lTemp.size()} | Perm Labels: ${lPerm.size()}`);
+		// }
+
 		if (lCurrent.currentNode === d) {
 			hasReachedDestination = true;
 		}
@@ -92,10 +100,6 @@ export function findPathInGraphWithCostFunction({
 			(node, link) => {
 				const edge = link.data;
 				if (!lCurrent) throw new Error('lCurrent is undefined');
-
-				const index =
-					lTemp.toArray().filter((l) => l.currentNode === String(node.id)).length +
-					lPerm.toArray().filter((l) => l.currentNode === String(node.id)).length;
 
 				// line 7
 				const newLabel = {
@@ -109,7 +113,7 @@ export function findPathInGraphWithCostFunction({
 					chargingStops: lCurrent.chargingStops,
 					precedingNode: lCurrent.currentNode,
 					prevLabelIndex: lCurrent.currentLabelIndex,
-					currentLabelIndex: index,
+					currentLabelIndex: uid(),
 				};
 				const soc = initialSoC - lCurrent.cumulativePower; // in kWh
 				// lines 5: calculate the duration for this edge
@@ -172,19 +176,36 @@ export function findPathInGraphWithCostFunction({
 
 				// line 8
 				if (initialSoC - newLabel.cumulativePower >= minSoC) {
-					// line 9
-					lTemp.add(newLabel);
+					if (fastMode) {
+						// Equation box B
+						const temp = lTemp.toArray();
+						const tempMatches = temp.filter((l) => l.currentNode === newLabel.currentNode);
+						if (tempMatches.every((l) => l[type] > newLabel[type])) {
+							const permMatches = lPerm
+								.toArray()
+								.filter((l) => l.currentNode === newLabel.currentNode);
+							if (permMatches.every((l) => l[type] > newLabel[type])) {
+								// lines 10 and 11
+								const newTemp = temp.filter((l) => l.currentNode !== newLabel.currentNode);
+								lTemp.init(newTemp);
+								lTemp.add(newLabel);
+							}
+						}
+					} else {
+						// line 9
+						lTemp.add(newLabel);
+					}
 				}
 			},
 			true, // only outgoing edges
 		); // line 11, end of for loop
 	} // line 12, end of while loop
+	console.log();
 
 	// line 13
 	if (lCurrent?.currentNode === d) {
-		console.log(JSON.stringify(lCurrent, null, 2));
+		// console.log(JSON.stringify(lCurrent, null, 2));
 
-		// TODO: read from lPerm and construct the path and return stats instead of returning a label
 		const perm = lPerm.toArray();
 		const path = [];
 
@@ -200,6 +221,8 @@ export function findPathInGraphWithCostFunction({
 			path.push(prev);
 			current = prev;
 		}
+
+		path.reverse();
 
 		console.log({ path });
 
@@ -298,9 +321,9 @@ export async function createGraphFromRouteAndChargingStations({
 		for (const outletType of station.outletList) {
 			if (!outletType.capacity) continue;
 			if (!outletType.costKwh && !outletType.costMin) continue;
-			if (outletType.capacity < 11) continue;
+			if (outletType.capacity < 22) continue;
 
-			for (let j = 20; j <= 100; j += 20) {
+			for (let j = 50; j <= 100; j += 50) {
 				const chargeLevelLabel = `c${i}-${j}-${outletType.capacity}`;
 				//  add a node for each charge level
 				g.addNode(chargeLevelLabel, {
@@ -492,9 +515,9 @@ type NodeLabel = {
 	chargingKw: number;
 	chargingStops: number;
 	precedingNode: string | null;
-	prevLabelIndex: number; // "which of the labels belonging to the preceding node is relevant for getting the currently considered label"
+	prevLabelIndex: string; // "which of the labels belonging to the preceding node is relevant for getting the currently considered label"
 	currentNode: string;
-	currentLabelIndex: number;
+	currentLabelIndex: string;
 };
 
 type NodeType =
