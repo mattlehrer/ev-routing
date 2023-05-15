@@ -44,7 +44,7 @@
 	},
 	"type": "module",
 	"engines": {
-		"node": ">=18.16"
+		"node": ">=18.15"
 	},
 	"dependencies": {
 		"@project-osrm/osrm": "^5.27.1",
@@ -55,6 +55,7 @@
 		"humanize-duration": "^3.28.0",
 		"just-compare": "^2.3.0",
 		"ngraph.graph": "^20.0.1",
-		"ngraph.tojson": "^1.2.0"
+		"ngraph.tojson": "^1.2.0",
+		"uid": "^2.0.2"
 	}
 }
