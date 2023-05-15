@@ -50,7 +50,7 @@ export function findPathInGraphWithCostFunction({
 	d = 'd',
 	minSoC = 0.1 * TestVehicle.battery_capacity,
 	batteryCapacity = TestVehicle.battery_capacity,
-	fastMode = true,
+	fastMode = false,
 }: {
 	g: Awaited<ReturnType<typeof createGraphFromRouteAndChargingStations>>;
 	type: 'cumulativeDuration' | 'cumulativeFinancialCost';
@@ -61,8 +61,15 @@ export function findPathInGraphWithCostFunction({
 	batteryCapacity?: number;
 	fastMode?: boolean;
 }) {
-	const lTemp = new Heap<NodeLabel>((a, b) => a[type] - b[type]); // opened nodes
-	const lPerm = new Heap<NodeLabel>((a, b) => a[type] - b[type]); // closed nodes
+	const lTemp =
+		type === 'cumulativeFinancialCost'
+			? new Heap<NodeLabel>(financialCostComparator)
+			: new Heap<NodeLabel>((a, b) => a[type] - b[type]); // opened nodes
+	const lPerm =
+		type === 'cumulativeFinancialCost'
+			? new Heap<NodeLabel>(financialCostComparator)
+			: new Heap<NodeLabel>((a, b) => a[type] - b[type]); // closed nodes
+
 	let hasReachedDestination = false;
 
 	lTemp.add({
@@ -224,7 +231,7 @@ export function findPathInGraphWithCostFunction({
 
 		path.reverse();
 
-		console.log({ path });
+		console.log({ path, d: path[path.length - 1] });
 
 		return lCurrent;
 	} else {
@@ -504,6 +511,14 @@ function calculateChargingDuration({
 			((targetSoc / 100 - 0.8) * batteryCapacity) / (capacity * efficiency * slowerCharge)) *
 		3600 // seconds per hour
 	);
+}
+
+function financialCostComparator(a: NodeLabel, b: NodeLabel) {
+	if (a.cumulativeFinancialCost === b.cumulativeFinancialCost) {
+		return a.cumulativeDuration - b.cumulativeDuration;
+	} else {
+		return a.cumulativeFinancialCost - b.cumulativeFinancialCost;
+	}
 }
 
 type NodeLabel = {
