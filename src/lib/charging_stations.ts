@@ -210,7 +210,7 @@ const chargingStationAPIFetchOptions = {
 	},
 };
 
-const randomWait = () => Math.floor(Math.random() * (1500 - 750) + 1250);
+const randomWait = () => Math.floor(Math.random() * (2500 - 1000) + 2000);
 
 export type ChargingStationAPIRouteResponse = {
 	type: 'FeatureCollection';
