@@ -13,6 +13,7 @@ import {
 	createGraphFromRouteAndChargingStations,
 	findPathInGraphWithCostFunction,
 } from '$lib/station_graph';
+import { TestVehicle } from '$lib/vehicles/TestVehicle';
 import { error } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -65,7 +66,7 @@ export const load = (async ({ url }) => {
 		const path = findPathInGraphWithCostFunction({
 			g,
 			type: 'cumulativeFinancialCost',
-			initialSoC: 20,
+			initialSoC: TestVehicle.battery_capacity * 0.95,
 		});
 		console.timeEnd('path for financialCost');
 	}
