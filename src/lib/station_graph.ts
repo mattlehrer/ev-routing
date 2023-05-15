@@ -327,8 +327,14 @@ export async function createGraphFromRouteAndChargingStations({
 
 		for (const outletType of station.outletList) {
 			if (!outletType.capacity) continue;
-			if (!outletType.costKwh && !outletType.costMin) continue;
-			if (outletType.capacity < 22) continue;
+			if (!outletType.costKwh && !outletType.costMin) {
+				console.log(`skipping outlet without price data at station ${station.slug}`);
+				continue;
+			}
+			if (outletType.capacity < 22) {
+				console.log(`skipping outlet with ${outletType.capacity}kW`);
+				continue;
+			}
 
 			for (let j = 50; j <= 100; j += 50) {
 				const chargeLevelLabel = `c${i}-${j}-${outletType.capacity}`;
