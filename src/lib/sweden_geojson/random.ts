@@ -41,5 +41,3 @@ export function getLonLatInSweden() {
 
 	return lonLat;
 }
-
-console.log({ inSweden: getLonLatInSweden() });
