@@ -1,4 +1,6 @@
-import { getLonLatInSweden } from '$lib/sweden_geojson/random';
+import { getRoute } from '$lib/route';
+import { getLatLonInSweden } from '$lib/sweden_geojson/random';
+import type OSRM from '@project-osrm/osrm';
 import { fail } from '@sveltejs/kit';
 import calculateDistance from '@turf/distance';
 import { isNumber } from '@turf/helpers';
@@ -10,7 +12,34 @@ const connection = {
 	port: 6379,
 };
 
-let worker: Worker<{ origin: number[]; destination: number[] }> | undefined = undefined;
+const worker = new Worker<{
+	origin: { latitude: number; longitude: number };
+	destination: { latitude: number; longitude: number };
+}>(
+	'routes',
+	async (job: Job) => {
+		// Optionally report some progress
+		await job.updateProgress(42);
+		const { origin, destination } = job.data;
+		console.log('worker running');
+		console.log({ origin, destination, priority: job.opts.priority });
+		const route = await getRoute({
+			origin: [origin.latitude, origin.longitude],
+			destination: [destination.latitude, destination.longitude],
+		});
+		return { origin, destination, route };
+	},
+	{ connection },
+);
+
+worker.on(
+	'completed',
+	(job: Job, returnvalue: { origin: number[]; destination: number[]; route: OSRM.Route }) => {
+		// Do something with the return value.
+		const { route, origin, destination } = returnvalue;
+		console.log({ origin, destination, route: route.distance });
+	},
+);
 
 export const actions = {
 	default: async (event) => {
@@ -23,21 +52,15 @@ export const actions = {
 		console.log({ input: Number(routes) });
 
 		const myQueue = new Queue('routes', { connection });
-		if (!worker) {
-			worker = new Worker('routes', async (job: Job) => {
-				// Optionally report some progress
-				await job.updateProgress(42);
-				const { origin, destination } = job.data;
-				console.log('worker running');
-				console.log({ origin, destination, priority: job.opts.priority });
-				return { origin, destination };
-			});
-		}
 
 		for (let i = 0; i < Number(routes); i++) {
-			const origin = getLonLatInSweden();
-			const destination = getLonLatInSweden();
-			const distance = calculateDistance(origin, destination, { units: 'kilometers' });
+			const origin = getLatLonInSweden();
+			const destination = getLatLonInSweden();
+			const distance = calculateDistance(
+				[origin.longitude, origin.latitude],
+				[destination.longitude, destination.latitude],
+				{ units: 'kilometers' },
+			);
 			await myQueue.add('route', { origin, destination }, { priority: distance });
 		}
 

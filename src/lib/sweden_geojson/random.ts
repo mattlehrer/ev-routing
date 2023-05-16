@@ -12,10 +12,10 @@ const geojson = JSON.parse(
 const combined = combine(geojson);
 
 // generate random lon/lat pair within sweden (11.0273686052, 55.3617373725, 23.9033785336, 69.1062472602)
-const getRandomLonLat = () => {
-	const lon = Math.random() * (23.9033785336 - 11.0273686052) + 11.0273686052;
-	const lat = Math.random() * (69.1062472602 - 55.3617373725) + 55.3617373725;
-	return [lon, lat];
+const getRandomLatLon = () => {
+	const latitude = Math.random() * (69.1062472602 - 55.3617373725) + 55.3617373725;
+	const longitude = Math.random() * (23.9033785336 - 11.0273686052) + 11.0273686052;
+	return { latitude, longitude };
 };
 
 function isInSweden(lonLat: number[]) {
@@ -30,14 +30,14 @@ function isInSweden(lonLat: number[]) {
 	return false;
 }
 
-export function getLonLatInSweden() {
-	let lonLat = getRandomLonLat();
+export function getLatLonInSweden() {
+	let latLon = getRandomLatLon();
 	let tries = 0;
 
-	while (!isInSweden(lonLat) && tries < 100) {
-		lonLat = getRandomLonLat();
+	while (!isInSweden([latLon.longitude, latLon.latitude]) && tries < 100) {
+		latLon = getRandomLatLon();
 		tries++;
 	}
 
-	return lonLat;
+	return latLon;
 }
