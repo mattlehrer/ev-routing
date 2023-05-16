@@ -1,6 +1,7 @@
 import {
 	getChargingStationsAlongRoute,
 	type ChargingStationAPIRouteResponse,
+	type ChargingStationAPIStation,
 } from '$lib/charging_stations';
 import type { LatLonPair } from '$lib/lat_lon';
 import {
@@ -56,19 +57,45 @@ export const load = (async ({ url }) => {
 		});
 
 		console.log('creating graph');
+		const minimumCapacity = 22;
 		const g = await createGraphFromRouteAndChargingStations({
 			intersections: convertRouteFromStepsToIntersections(route),
 			stations: chargingStations.stations,
+			minimumCapacity,
 		});
 
-		console.log('finding path');
-		console.time('path for financialCost');
+		const stations: ChargingStationAPIStation[] =
+			chargingStations.stations as unknown as ChargingStationAPIStation[];
+
+		const nodeCount = g.getNodesCount();
+		const edgeCount = g.getLinksCount();
+		const originalOutletCount = stations.reduce(
+			(acc: number, s: ChargingStationAPIStation) => acc + s.outletList.reduce((l, _) => l + 1, 0),
+			0,
+		);
+		const outletCount = stations.reduce(
+			(acc: number, s: ChargingStationAPIStation) =>
+				acc +
+				s.outletList.reduce(
+					(l, o) => l + (o.capacity >= minimumCapacity && (o.costKwh || o.costMin) ? 1 : 0),
+					0,
+				),
+			0,
+		);
+
+		console.log(
+			`graph has ${nodeCount} nodes, ${edgeCount} edges, and ${outletCount} outlets from ${originalOutletCount} original outlets`,
+		);
+
+		const t = 'cumulativeFinancialCost';
+		console.log(`finding ${t} path`);
+		console.time(`path for ${t}`);
 		const path = findPathInGraphWithCostFunction({
 			g,
-			type: 'cumulativeFinancialCost',
+			type: t,
 			initialSoC: TestVehicle.battery_capacity * 0.95,
 		});
-		console.timeEnd('path for financialCost');
+		console.timeEnd(`path for ${t}`);
 	}
 
 	return {

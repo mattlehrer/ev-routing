@@ -254,10 +254,12 @@ export async function createGraphFromRouteAndChargingStations({
 	intersections,
 	stations,
 	overheadDuration = 5 * 60, // 5 minutes
+	minimumCapacity = 22, // kW
 }: {
 	intersections: ReturnType<typeof convertRouteFromStepsToIntersections>;
 	stations: Awaited<ReturnType<typeof getPricingForChargingStations>>;
 	overheadDuration?: number;
+	minimumCapacity?: number;
 }) {
 	const g = newGraph<NodeType, Edge>();
 
@@ -331,7 +333,7 @@ export async function createGraphFromRouteAndChargingStations({
 				console.log(`skipping outlet without price data at station ${station.slug}`);
 				continue;
 			}
-			if (outletType.capacity < 22) {
+			if (outletType.capacity < minimumCapacity) {
 				console.log(`skipping outlet with ${outletType.capacity}kW`);
 				continue;
 			}
