@@ -1,16 +1,55 @@
-import { getRoute } from '$lib/route';
+import {
+	getChargingStationsAlongRoute,
+	type ChargingStationAPIStation,
+} from '$lib/charging_stations';
+import {
+	calcPowerForRouteWithVehicle,
+	convertRouteFromStepsToIntersections,
+	getRoute,
+} from '$lib/route';
+import {
+	createGraphFromRouteAndChargingStations,
+	findPathInGraphWithCostFunction,
+} from '$lib/station_graph';
 import { getLatLonInSweden } from '$lib/sweden_geojson/random';
+import { TestVehicle } from '$lib/vehicles/TestVehicle';
 import type OSRM from '@project-osrm/osrm';
 import { fail } from '@sveltejs/kit';
-import calculateDistance from '@turf/distance';
 import { isNumber } from '@turf/helpers';
 import { Job, Queue, Worker } from 'bullmq';
+import { uid } from 'uid';
 import type { Actions } from './$types';
 
 const connection = {
 	host: 'localhost',
 	port: 6379,
 };
+
+/**
+ * for each job:
+ * - run and save output from
+ *		- getRoute
+ *		- calcPowerForRouteWithVehicle
+ *		- getChargingStationsAlongRoute
+ *			- with cache - redis
+ *		- createGraphFromRouteAndChargingStations
+ *		- findPathInGraphWithCostFunction for financial cost
+ *		- findPathInGraphWithCostFunction for duration
+ *	- log results to sqlite db & csv? log file with columns for
+ *		- start time of run: DateTime
+ *		- completion time: DateTime
+ *		- origin: json
+ *		- destination: json
+ *		- route: json
+ *		- totalPower: number
+ *		- graph: json
+ *		- path for financial cost: json
+ *		- optimized financial cost: number
+ *		- & associated duration: number
+ *		- path for duration: json
+ *		- optimized duration: number
+ *		- & associated financial cost: number
+ */
 
 const worker = new Worker<{
 	origin: { latitude: number; longitude: number };
@@ -27,7 +66,56 @@ const worker = new Worker<{
 			origin: [origin.latitude, origin.longitude],
 			destination: [destination.latitude, destination.longitude],
 		});
-		return { origin, destination, route };
+		const { route: routeWithPower } = calcPowerForRouteWithVehicle(route);
+
+		const chargingStations = await getChargingStationsAlongRoute({
+			origin: [origin.latitude, origin.longitude],
+			destination: [destination.latitude, destination.longitude],
+			getPricing: true,
+		});
+
+		const minimumCapacity = 22;
+		const g = await createGraphFromRouteAndChargingStations({
+			intersections: convertRouteFromStepsToIntersections(routeWithPower),
+			stations: chargingStations.stations,
+			minimumCapacity,
+		});
+
+		const stations: ChargingStationAPIStation[] =
+			chargingStations.stations as unknown as ChargingStationAPIStation[];
+
+		const nodeCount = g.getNodesCount();
+		const edgeCount = g.getLinksCount();
+		const originalOutletCount = stations.reduce(
+			(acc: number, s: ChargingStationAPIStation) => acc + s.outletList.reduce((l, _) => l + 1, 0),
+			0,
+		);
+		const outletCount = stations.reduce(
+			(acc: number, s: ChargingStationAPIStation) =>
+				acc +
+				s.outletList.reduce(
+					(l, o) => l + (o.capacity >= minimumCapacity && (o.costKwh || o.costMin) ? 1 : 0),
+					0,
+				),
+			0,
+		);
+
+		console.log(
+			`graph has ${nodeCount} nodes, ${edgeCount} edges, and ${outletCount} outlets from ${originalOutletCount} original outlets`,
+		);
+
+		const t = 'cumulativeFinancialCost';
+		const id = uid();
+		console.log(`finding ${t} path`);
+		console.time(`path for ${t} ${id}`);
+		const path = findPathInGraphWithCostFunction({
+			g,
+			type: t,
+			initialSoC: TestVehicle.battery_capacity * 0.95,
+		});
+		console.timeEnd(`path for ${t} ${id}`);
+
+		return { origin, destination, route, chargingStations, graph: g, path };
 	},
 	{ connection },
 );
@@ -56,12 +144,12 @@ export const actions = {
 		for (let i = 0; i < Number(routes); i++) {
 			const origin = getLatLonInSweden();
 			const destination = getLatLonInSweden();
-			const distance = calculateDistance(
-				[origin.longitude, origin.latitude],
-				[destination.longitude, destination.latitude],
-				{ units: 'kilometers' },
-			);
-			await myQueue.add('route', { origin, destination }, { priority: distance });
+			// const distance = calculateDistance(
+			// 	[origin.longitude, origin.latitude],
+			// 	[destination.longitude, destination.latitude],
+			// 	{ units: 'kilometers' },
+			// );
+			await myQueue.add('route', { origin, destination });
 		}
 
 		return { success: true };
