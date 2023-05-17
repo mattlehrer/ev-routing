@@ -13,12 +13,47 @@ import {
 } from '$lib/station_graph';
 import { getLatLonInSweden } from '$lib/sweden_geojson/random';
 import { TestVehicle } from '$lib/vehicles/TestVehicle';
-import type OSRM from '@project-osrm/osrm';
 import { fail } from '@sveltejs/kit';
 import { isNumber } from '@turf/helpers';
+import Database from 'better-sqlite3';
 import { Job, Queue, Worker } from 'bullmq';
 import { uid } from 'uid';
 import type { Actions } from './$types';
+
+const db = new Database('results.db', { verbose: console.log });
+db.pragma('journal_mode = WAL');
+db.exec(`
+CREATE TABLE IF NOT EXISTS routes (
+	id TEXT PRIMARY KEY,
+  startTime DATETIME,
+  origin BLOB,
+  destination BLOB,
+  route BLOB,
+  totalPower FLOAT,
+  chargingStations BLOB,
+  graph BLOB,
+  financialCostPath BLOB,
+  optimizedCost FLOAT,
+  optimizedCostDuration FLOAT,
+  durationPath BLOB,
+  optimizedDuration FLOAT,
+  optimizedDurationFinancialCost FLOAT,
+  endTime DATETIME
+);
+`);
+const init = db.prepare(
+	`INSERT INTO routes (id, startTime, origin, destination, route, totalPower) VALUES (?, ?, ?, ?, ?, ?)`,
+);
+
+const addStations = db.prepare(`UPDATE routes set chargingStations = ? WHERE id = ?`);
+const addGraph = db.prepare(`UPDATE routes set graph = ? WHERE id = ?`);
+const addFinancialCostData = db.prepare(
+	`UPDATE routes set financialCostPath = ?, optimizedCost = ?, optimizedCostDuration = ? WHERE id = ?`,
+);
+const addDurationData = db.prepare(
+	`UPDATE routes set durationPath = ?, optimizedDuration = ?, optimizedDurationFinancialCost = ? WHERE id = ?`,
+);
+const addEndTime = db.prepare(`UPDATE routes set endTime = ? WHERE id = ?`);
 
 const connection = {
 	host: 'localhost',
@@ -57,22 +92,40 @@ const worker = new Worker<{
 }>(
 	'routes',
 	async (job: Job) => {
-		// Optionally report some progress
+		const jobId = uid();
+		console.log(`worker running ${jobId}`);
+
 		const startTime = Date.now();
 		const { origin, destination } = job.data;
-		console.log('worker running');
-		console.log({ origin, destination, priority: job.opts.priority });
+
+		console.log({ origin, destination });
 		const route = await getRoute({
 			origin: [origin.latitude, origin.longitude],
 			destination: [destination.latitude, destination.longitude],
 		});
 		const { route: routeWithPower, totalPower } = calcPowerForRouteWithVehicle(route);
+		console.log({ distance: route.distance, totalPower });
+
+		let info = init.run(
+			jobId,
+			startTime,
+			JSON.stringify(origin),
+			JSON.stringify(destination),
+			JSON.stringify(route),
+			totalPower,
+		);
+		console.log({ info });
 
 		const chargingStations = await getChargingStationsAlongRoute({
 			origin: [origin.latitude, origin.longitude],
 			destination: [destination.latitude, destination.longitude],
 			getPricing: true,
 		});
+		const stations: ChargingStationAPIStation[] =
+			chargingStations.stations as unknown as ChargingStationAPIStation[];
+
+		info = addStations.run(JSON.stringify(chargingStations), jobId);
+		console.log({ info });
 
 		const minimumCapacity = 22;
 		const g = await createGraphFromRouteAndChargingStations({
@@ -81,8 +134,8 @@ const worker = new Worker<{
 			minimumCapacity,
 		});
 
-		const stations: ChargingStationAPIStation[] =
-			chargingStations.stations as unknown as ChargingStationAPIStation[];
+		info = addGraph.run(g, jobId);
+		console.log({ info });
 
 		const nodeCount = g.getNodesCount();
 		const edgeCount = g.getLinksCount();
@@ -115,6 +168,18 @@ const worker = new Worker<{
 		});
 		console.timeEnd(`path for ${type} ${financialCostId}`);
 
+		info = addFinancialCostData.run(
+			JSON.stringify(financialCostPath),
+			financialCostPath
+				? JSON.stringify(financialCostPath[financialCostPath.length - 1].cumulativeFinancialCost)
+				: null,
+			financialCostPath
+				? JSON.stringify(financialCostPath[financialCostPath.length - 1].cumulativeDuration)
+				: null,
+			jobId,
+		);
+		console.log({ info });
+
 		type = 'cumulativeDuration';
 		const durationId = uid();
 		console.log(`finding ${type} path - ${durationId}`);
@@ -125,9 +190,25 @@ const worker = new Worker<{
 			initialSoC: TestVehicle.battery_capacity * 0.95,
 		});
 		console.timeEnd(`path for ${type} ${durationId}`);
+
+		info = addDurationData.run(
+			JSON.stringify(durationPath),
+			durationPath
+				? JSON.stringify(durationPath[durationPath.length - 1].cumulativeDuration)
+				: null,
+			durationPath
+				? JSON.stringify(durationPath[durationPath.length - 1].cumulativeFinancialCost)
+				: null,
+			jobId,
+		);
+		console.log({ info });
+
 		const endTime = Date.now();
 
-		return {
+		info = addEndTime.run(endTime, jobId);
+
+		const results = {
+			jobId,
 			startTime,
 			origin,
 			destination,
@@ -151,16 +232,44 @@ const worker = new Worker<{
 				: null,
 			endTime,
 		};
+
+		return results;
 	},
 	{ connection },
 );
 
 worker.on(
 	'completed',
-	(job: Job, returnvalue: { origin: number[]; destination: number[]; route: OSRM.Route }) => {
-		// Do something with the return value.
-		const { route, origin, destination } = returnvalue;
-		console.log({ origin, destination, route: route.distance });
+	(
+		job: Job,
+		returnvalue: {
+			jobId: string;
+			origin: number[];
+			destination: number[];
+			optimizedCost: number;
+			optimizedCostDuration: number;
+			optimizedDuration: number;
+			optimizedDurationFinancialCost: number;
+		},
+	) => {
+		const {
+			jobId,
+			origin,
+			destination,
+			optimizedCost,
+			optimizedCostDuration,
+			optimizedDuration,
+			optimizedDurationFinancialCost,
+		} = returnvalue;
+		console.log({
+			jobId,
+			origin,
+			destination,
+			optimizedCost,
+			optimizedCostDuration,
+			optimizedDuration,
+			optimizedDurationFinancialCost,
+		});
 	},
 );
 
