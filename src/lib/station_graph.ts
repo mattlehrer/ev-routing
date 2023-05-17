@@ -216,7 +216,7 @@ export function findPathInGraphWithCostFunction({
 		const perm = lPerm.toArray();
 		const path = [];
 
-		path.push(lCurrent);
+		path.unshift(lCurrent);
 		let current = lCurrent;
 		while (current?.precedingNode) {
 			const prev = perm.find(
@@ -225,15 +225,13 @@ export function findPathInGraphWithCostFunction({
 					p.currentLabelIndex === current?.prevLabelIndex,
 			);
 			if (!prev) throw new Error('prev is undefined');
-			path.push(prev);
+			path.unshift(prev);
 			current = prev;
 		}
 
-		path.reverse();
-
 		console.log({ path, d: path[path.length - 1] });
 
-		return lCurrent;
+		return path;
 	} else {
 		const perm = lPerm.toArray().slice(-10);
 		console.log({ perm });

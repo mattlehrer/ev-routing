@@ -58,7 +58,7 @@ const worker = new Worker<{
 	'routes',
 	async (job: Job) => {
 		// Optionally report some progress
-		await job.updateProgress(42);
+		const startTime = Date.now();
 		const { origin, destination } = job.data;
 		console.log('worker running');
 		console.log({ origin, destination, priority: job.opts.priority });
@@ -66,7 +66,7 @@ const worker = new Worker<{
 			origin: [origin.latitude, origin.longitude],
 			destination: [destination.latitude, destination.longitude],
 		});
-		const { route: routeWithPower } = calcPowerForRouteWithVehicle(route);
+		const { route: routeWithPower, totalPower } = calcPowerForRouteWithVehicle(route);
 
 		const chargingStations = await getChargingStationsAlongRoute({
 			origin: [origin.latitude, origin.longitude],
@@ -104,18 +104,53 @@ const worker = new Worker<{
 			`graph has ${nodeCount} nodes, ${edgeCount} edges, and ${outletCount} outlets from ${originalOutletCount} original outlets`,
 		);
 
-		const t = 'cumulativeFinancialCost';
-		const id = uid();
-		console.log(`finding ${t} path`);
-		console.time(`path for ${t} ${id}`);
-		const path = findPathInGraphWithCostFunction({
+		let type = 'cumulativeFinancialCost' as 'cumulativeDuration' | 'cumulativeFinancialCost';
+		const financialCostId = uid();
+		console.log(`finding ${type} path - ${financialCostId}`);
+		console.time(`path for ${type} ${financialCostId}`);
+		const financialCostPath = findPathInGraphWithCostFunction({
 			g,
-			type: t,
+			type,
 			initialSoC: TestVehicle.battery_capacity * 0.95,
 		});
-		console.timeEnd(`path for ${t} ${id}`);
+		console.timeEnd(`path for ${type} ${financialCostId}`);
 
-		return { origin, destination, route, chargingStations, graph: g, path };
+		type = 'cumulativeDuration';
+		const durationId = uid();
+		console.log(`finding ${type} path - ${durationId}`);
+		console.time(`path for ${type} ${durationId}`);
+		const durationPath = findPathInGraphWithCostFunction({
+			g,
+			type,
+			initialSoC: TestVehicle.battery_capacity * 0.95,
+		});
+		console.timeEnd(`path for ${type} ${durationId}`);
+		const endTime = Date.now();
+
+		return {
+			startTime,
+			origin,
+			destination,
+			route,
+			totalPower,
+			chargingStations,
+			graph: g,
+			financialCostPath,
+			optimizedCost: financialCostPath
+				? financialCostPath[financialCostPath.length - 1].cumulativeFinancialCost
+				: null,
+			optimizedCostDuration: financialCostPath
+				? financialCostPath[financialCostPath.length - 1].cumulativeDuration
+				: null,
+			durationPath,
+			optimizedDuration: durationPath
+				? durationPath[durationPath.length - 1].cumulativeDuration
+				: null,
+			optimizedDurationFinancialCost: durationPath
+				? durationPath[durationPath.length - 1].cumulativeFinancialCost
+				: null,
+			endTime,
+		};
 	},
 	{ connection },
 );
