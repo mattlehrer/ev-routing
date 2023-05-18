@@ -136,8 +136,12 @@ const worker = new Worker<{
 			minimumCapacity,
 		});
 
-		info = addGraph.run(g, jobId);
-		console.log({ info });
+		try {
+			info = addGraph.run(g, jobId);
+			console.log({ info });
+		} catch (error) {
+			console.log({ error });
+		}
 
 		const nodeCount = g.getNodesCount();
 		const edgeCount = g.getLinksCount();
