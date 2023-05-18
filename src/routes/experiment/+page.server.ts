@@ -60,6 +60,8 @@ const connection = {
 	port: 6379,
 };
 
+const myQueue = new Queue('routes', { connection });
+
 /**
  * for each job:
  * - run and save output from
@@ -282,8 +284,6 @@ export const actions = {
 			return fail(400, { routes, incorrect: true });
 		}
 		console.log({ input: Number(routes) });
-
-		const myQueue = new Queue('routes', { connection });
 
 		for (let i = 0; i < Number(routes); i++) {
 			const origin = getLatLonInSweden();
