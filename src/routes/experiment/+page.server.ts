@@ -1,3 +1,4 @@
+import { building } from '$app/environment';
 import {
 	getChargingStationsAlongRoute,
 	type ChargingStationAPIStation,
@@ -102,6 +103,7 @@ const worker = new Worker<{
 }>(
 	'routes',
 	async (job: Job) => {
+		if (building) return;
 		const jobId = uid();
 		console.log(`worker running ${jobId}`);
 
