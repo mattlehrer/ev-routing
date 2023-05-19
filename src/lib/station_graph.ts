@@ -18,7 +18,7 @@
 import type { Coordinate } from '@project-osrm/osrm';
 import { featureCollection, point, type Position } from '@turf/helpers';
 import nearestPoint from '@turf/nearest-point';
-import Heap from 'heap-js';
+import { Heap } from 'heap-js';
 import compare from 'just-compare';
 import newGraph from 'ngraph.graph';
 import toJson from 'ngraph.tojson';
