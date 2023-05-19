@@ -93,7 +93,7 @@ export function findPathInGraphWithCostFunction({
 		lCurrent = lTemp.pop();
 		if (!lCurrent) throw new Error('lCurrent is undefined');
 		lPerm.add(lCurrent);
-		if (!(lPerm.size() % 32768)) {
+		if (!(lPerm.size() % 1048576)) {
 			console.log(`Temp Labels: ${lTemp.size()} | Perm Labels: ${lPerm.size()}`);
 		}
 
