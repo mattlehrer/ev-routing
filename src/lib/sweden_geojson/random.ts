@@ -4,8 +4,12 @@ import { point, type MultiPolygon } from '@turf/helpers';
 import { readFileSync } from 'fs';
 
 // read the geojson file
+// const geojson = JSON.parse(
+// 	readFileSync('./src/lib/sweden_geojson/swedish_regions.geojson', 'utf8'),
+// );
+
 const geojson = JSON.parse(
-	readFileSync('./src/lib/sweden_geojson/swedish_regions.geojson', 'utf8'),
+	readFileSync('./src/lib/sweden_geojson/sweden_minus_north_regions.geojson', 'utf8'),
 );
 
 // combine the geojson
