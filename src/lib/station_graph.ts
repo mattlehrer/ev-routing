@@ -229,11 +229,15 @@ export function findPathInGraphWithCostFunction({
 		}
 
 		console.log({ path, d: path[path.length - 1] });
+		lTemp.clear();
+		lPerm.clear();
 
 		return path;
 	} else {
 		const perm = lPerm.toArray().slice(-10);
 		console.log({ perm });
+		lTemp.clear();
+		lPerm.clear();
 		// line 14: “No feasible solution found.”
 		console.error('No feasible solution found.');
 		return null;
