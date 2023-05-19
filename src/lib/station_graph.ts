@@ -93,7 +93,7 @@ export function findPathInGraphWithCostFunction({
 		lCurrent = lTemp.pop();
 		if (!lCurrent) throw new Error('lCurrent is undefined');
 		lPerm.add(lCurrent);
-		if (!(lPerm.size() % 8192)) {
+		if (!(lPerm.size() % 32768)) {
 			console.log(`Temp Labels: ${lTemp.size()} | Perm Labels: ${lPerm.size()}`);
 		}
 
@@ -252,11 +252,13 @@ export async function createGraphFromRouteAndChargingStations({
 	stations,
 	overheadDuration = 5 * 60, // 5 minutes
 	minimumCapacity = 22, // kW
+	chargeLevelInterval = 25, // %
 }: {
 	intersections: ReturnType<typeof convertRouteFromStepsToIntersections>;
 	stations: Awaited<ReturnType<typeof getPricingForChargingStations>>;
 	overheadDuration?: number;
 	minimumCapacity?: number;
+	chargeLevelInterval?: number;
 }) {
 	const g = newGraph<NodeType, Edge>();
 
@@ -335,7 +337,7 @@ export async function createGraphFromRouteAndChargingStations({
 				continue;
 			}
 
-			for (let j = 50; j <= 100; j += 50) {
+			for (let j = chargeLevelInterval; j <= 100; j += chargeLevelInterval) {
 				const chargeLevelLabel = `c${i}-${j}-${outletType.capacity}`;
 				//  add a node for each charge level
 				g.addNode(chargeLevelLabel, {
@@ -406,7 +408,12 @@ export async function createGraphFromRouteAndChargingStations({
 		power: statsFromPrevToA.power,
 	});
 
-	console.log({ nodes: g.getNodeCount(), edges: g.getLinkCount() });
+	console.log({
+		nodes: g.getNodeCount(),
+		edges: g.getLinkCount(),
+		minimumCapacity,
+		chargeLevelInterval,
+	});
 	const json = toJson(g);
 	console.log({ graph: json });
 

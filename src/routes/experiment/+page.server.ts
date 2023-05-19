@@ -32,13 +32,16 @@ CREATE TABLE IF NOT EXISTS routes (
   totalPower FLOAT,
   chargingStations BLOB,
   graph BLOB,
+	minimumCapacity INTEGER,
+	chargeLevelInterval INTEGER,
   financialCostPath BLOB,
   optimizedCost FLOAT,
   optimizedCostDuration FLOAT,
   durationPath BLOB,
   optimizedDuration FLOAT,
   optimizedDurationFinancialCost FLOAT,
-  endTime DATETIME
+  endTime DATETIME,
+	error BLOB
 );
 `);
 const init = db.prepare(
@@ -46,7 +49,10 @@ const init = db.prepare(
 );
 
 const addStations = db.prepare(`UPDATE routes set chargingStations = ? WHERE id = ?`);
-const addGraph = db.prepare(`UPDATE routes set graph = ? WHERE id = ?`);
+// const addGraph = db.prepare(`UPDATE routes set graph = ? WHERE id = ?`);
+const addGraphSettings = db.prepare(
+	`UPDATE routes set minimumCapacity = ?, chargeLevelInterval = ? WHERE id = ?`,
+);
 const addFinancialCostData = db.prepare(
 	`UPDATE routes set financialCostPath = ?, optimizedCost = ?, optimizedCostDuration = ? WHERE id = ?`,
 );
@@ -54,6 +60,7 @@ const addDurationData = db.prepare(
 	`UPDATE routes set durationPath = ?, optimizedDuration = ?, optimizedDurationFinancialCost = ? WHERE id = ?`,
 );
 const addEndTime = db.prepare(`UPDATE routes set endTime = ? WHERE id = ?`);
+const addError = db.prepare(`UPDATE routes set error = ? WHERE id = ?`);
 
 const connection = {
 	host: 'localhost',
@@ -80,6 +87,7 @@ const myQueue = new Queue('routes', { connection });
  *		- route: json
  *		- totalPower: number
  *		- graph: json
+ *		- chargeLevelInterval: number
  *		- path for financial cost: json
  *		- optimized financial cost: number
  *		- & associated duration: number
@@ -97,149 +105,157 @@ const worker = new Worker<{
 		const jobId = uid();
 		console.log(`worker running ${jobId}`);
 
-		const startTime = Date.now();
-		const { origin, destination } = job.data;
-
-		console.log({ origin, destination });
-		const route = await getRoute({
-			origin: [origin.latitude, origin.longitude],
-			destination: [destination.latitude, destination.longitude],
-		});
-		const { route: routeWithPower, totalPower } = calcPowerForRouteWithVehicle(route);
-		console.log({ distance: route.distance, totalPower });
-
-		let info = init.run(
-			jobId,
-			startTime,
-			JSON.stringify(origin),
-			JSON.stringify(destination),
-			JSON.stringify(route),
-			totalPower,
-		);
-		console.log({ info });
-
-		const chargingStations = await getChargingStationsAlongRoute({
-			origin: [origin.latitude, origin.longitude],
-			destination: [destination.latitude, destination.longitude],
-			getPricing: true,
-		});
-		const stations: ChargingStationAPIStation[] =
-			chargingStations.stations as unknown as ChargingStationAPIStation[];
-
-		info = addStations.run(JSON.stringify(chargingStations), jobId);
-		console.log({ info });
-
-		const minimumCapacity = 22;
-		const g = await createGraphFromRouteAndChargingStations({
-			intersections: convertRouteFromStepsToIntersections(routeWithPower),
-			stations: chargingStations.stations,
-			minimumCapacity,
-		});
-
 		try {
-			info = addGraph.run(g, jobId);
+			const startTime = Date.now();
+			const { origin, destination } = job.data;
+
+			console.log({ origin, destination });
+			const route = await getRoute({
+				origin: [origin.latitude, origin.longitude],
+				destination: [destination.latitude, destination.longitude],
+			});
+			const { route: routeWithPower, totalPower } = calcPowerForRouteWithVehicle(route);
+			console.log({ distance: route.distance, totalPower });
+
+			let info = init.run(
+				jobId,
+				startTime,
+				JSON.stringify(origin),
+				JSON.stringify(destination),
+				JSON.stringify(route),
+				totalPower,
+			);
 			console.log({ info });
-		} catch (error) {
-			console.log({ error });
+
+			const chargingStations = await getChargingStationsAlongRoute({
+				origin: [origin.latitude, origin.longitude],
+				destination: [destination.latitude, destination.longitude],
+				getPricing: true,
+			});
+			const stations: ChargingStationAPIStation[] =
+				chargingStations.stations as unknown as ChargingStationAPIStation[];
+
+			info = addStations.run(JSON.stringify(chargingStations), jobId);
+			console.log({ info });
+
+			const minimumCapacity = 22;
+			const chargeLevelInterval = 25;
+			const g = await createGraphFromRouteAndChargingStations({
+				intersections: convertRouteFromStepsToIntersections(routeWithPower),
+				stations: chargingStations.stations,
+				minimumCapacity,
+				chargeLevelInterval,
+			});
+
+			info = addGraphSettings.run(minimumCapacity, chargeLevelInterval, jobId);
+			console.log({ info });
+
+			const nodeCount = g.getNodesCount();
+			const edgeCount = g.getLinksCount();
+			const originalOutletCount = stations.reduce(
+				(acc: number, s: ChargingStationAPIStation) =>
+					acc + s.outletList.reduce((l, _) => l + 1, 0),
+				0,
+			);
+			const outletCount = stations.reduce(
+				(acc: number, s: ChargingStationAPIStation) =>
+					acc +
+					s.outletList.reduce(
+						(l, o) => l + (o.capacity >= minimumCapacity && (o.costKwh || o.costMin) ? 1 : 0),
+						0,
+					),
+				0,
+			);
+
+			console.log(
+				`graph has ${nodeCount} nodes, ${edgeCount} edges, and ${outletCount} outlets from ${originalOutletCount} original outlets`,
+			);
+
+			let type = 'cumulativeFinancialCost' as 'cumulativeDuration' | 'cumulativeFinancialCost';
+			const financialCostId = uid();
+			console.log(`finding ${type} path - ${financialCostId}`);
+			console.time(`path for ${type} ${financialCostId}`);
+			const financialCostPath = findPathInGraphWithCostFunction({
+				g,
+				type,
+				initialSoC: TestVehicle.battery_capacity * 0.95,
+			});
+			console.timeEnd(`path for ${type} ${financialCostId}`);
+
+			info = addFinancialCostData.run(
+				JSON.stringify(financialCostPath),
+				financialCostPath
+					? JSON.stringify(financialCostPath[financialCostPath.length - 1].cumulativeFinancialCost)
+					: null,
+				financialCostPath
+					? JSON.stringify(financialCostPath[financialCostPath.length - 1].cumulativeDuration)
+					: null,
+				jobId,
+			);
+			console.log({ info });
+
+			type = 'cumulativeDuration';
+			const durationId = uid();
+			console.log(`finding ${type} path - ${durationId}`);
+			console.time(`path for ${type} ${durationId}`);
+			const durationPath = findPathInGraphWithCostFunction({
+				g,
+				type,
+				initialSoC: TestVehicle.battery_capacity * 0.95,
+			});
+			console.timeEnd(`path for ${type} ${durationId}`);
+
+			info = addDurationData.run(
+				JSON.stringify(durationPath),
+				durationPath
+					? JSON.stringify(durationPath[durationPath.length - 1].cumulativeDuration)
+					: null,
+				durationPath
+					? JSON.stringify(durationPath[durationPath.length - 1].cumulativeFinancialCost)
+					: null,
+				jobId,
+			);
+			console.log({ info });
+
+			const endTime = Date.now();
+
+			info = addEndTime.run(endTime, jobId);
+
+			const results = {
+				jobId,
+				startTime,
+				origin,
+				destination,
+				route,
+				totalPower,
+				chargingStations,
+				graph: g,
+				financialCostPath,
+				optimizedCost: financialCostPath
+					? financialCostPath[financialCostPath.length - 1].cumulativeFinancialCost
+					: null,
+				optimizedCostDuration: financialCostPath
+					? financialCostPath[financialCostPath.length - 1].cumulativeDuration
+					: null,
+				durationPath,
+				optimizedDuration: durationPath
+					? durationPath[durationPath.length - 1].cumulativeDuration
+					: null,
+				optimizedDurationFinancialCost: durationPath
+					? durationPath[durationPath.length - 1].cumulativeFinancialCost
+					: null,
+				endTime,
+			};
+
+			return results;
+		} catch (error: unknown) {
+			if (error instanceof Error) {
+				addError.run(JSON.stringify(error), jobId);
+			}
+			const endTime = Date.now();
+			const info = addEndTime.run(endTime, jobId);
+			console.log({ info });
 		}
-
-		const nodeCount = g.getNodesCount();
-		const edgeCount = g.getLinksCount();
-		const originalOutletCount = stations.reduce(
-			(acc: number, s: ChargingStationAPIStation) => acc + s.outletList.reduce((l, _) => l + 1, 0),
-			0,
-		);
-		const outletCount = stations.reduce(
-			(acc: number, s: ChargingStationAPIStation) =>
-				acc +
-				s.outletList.reduce(
-					(l, o) => l + (o.capacity >= minimumCapacity && (o.costKwh || o.costMin) ? 1 : 0),
-					0,
-				),
-			0,
-		);
-
-		console.log(
-			`graph has ${nodeCount} nodes, ${edgeCount} edges, and ${outletCount} outlets from ${originalOutletCount} original outlets`,
-		);
-
-		let type = 'cumulativeFinancialCost' as 'cumulativeDuration' | 'cumulativeFinancialCost';
-		const financialCostId = uid();
-		console.log(`finding ${type} path - ${financialCostId}`);
-		console.time(`path for ${type} ${financialCostId}`);
-		const financialCostPath = findPathInGraphWithCostFunction({
-			g,
-			type,
-			initialSoC: TestVehicle.battery_capacity * 0.95,
-		});
-		console.timeEnd(`path for ${type} ${financialCostId}`);
-
-		info = addFinancialCostData.run(
-			JSON.stringify(financialCostPath),
-			financialCostPath
-				? JSON.stringify(financialCostPath[financialCostPath.length - 1].cumulativeFinancialCost)
-				: null,
-			financialCostPath
-				? JSON.stringify(financialCostPath[financialCostPath.length - 1].cumulativeDuration)
-				: null,
-			jobId,
-		);
-		console.log({ info });
-
-		type = 'cumulativeDuration';
-		const durationId = uid();
-		console.log(`finding ${type} path - ${durationId}`);
-		console.time(`path for ${type} ${durationId}`);
-		const durationPath = findPathInGraphWithCostFunction({
-			g,
-			type,
-			initialSoC: TestVehicle.battery_capacity * 0.95,
-		});
-		console.timeEnd(`path for ${type} ${durationId}`);
-
-		info = addDurationData.run(
-			JSON.stringify(durationPath),
-			durationPath
-				? JSON.stringify(durationPath[durationPath.length - 1].cumulativeDuration)
-				: null,
-			durationPath
-				? JSON.stringify(durationPath[durationPath.length - 1].cumulativeFinancialCost)
-				: null,
-			jobId,
-		);
-		console.log({ info });
-
-		const endTime = Date.now();
-
-		info = addEndTime.run(endTime, jobId);
-
-		const results = {
-			jobId,
-			startTime,
-			origin,
-			destination,
-			route,
-			totalPower,
-			chargingStations,
-			graph: g,
-			financialCostPath,
-			optimizedCost: financialCostPath
-				? financialCostPath[financialCostPath.length - 1].cumulativeFinancialCost
-				: null,
-			optimizedCostDuration: financialCostPath
-				? financialCostPath[financialCostPath.length - 1].cumulativeDuration
-				: null,
-			durationPath,
-			optimizedDuration: durationPath
-				? durationPath[durationPath.length - 1].cumulativeDuration
-				: null,
-			optimizedDurationFinancialCost: durationPath
-				? durationPath[durationPath.length - 1].cumulativeFinancialCost
-				: null,
-			endTime,
-		};
-
-		return results;
 	},
 	{ connection },
 );
