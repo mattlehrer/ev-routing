@@ -138,8 +138,8 @@ const worker = new Worker<{
 			info = addStations.run(JSON.stringify(chargingStations), jobId);
 			console.log({ info });
 
-			const minimumCapacity = 22;
-			const chargeLevelInterval = 25;
+			const minimumCapacity = 43;
+			const chargeLevelInterval = 50;
 			const g = await createGraphFromRouteAndChargingStations({
 				intersections: convertRouteFromStepsToIntersections(routeWithPower),
 				stations: chargingStations.stations,
