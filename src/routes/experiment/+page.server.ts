@@ -155,8 +155,7 @@ const worker = new Worker<{
 			const nodeCount = g.getNodesCount();
 			const edgeCount = g.getLinksCount();
 			const originalOutletCount = stations.reduce(
-				(acc: number, s: ChargingStationAPIStation) =>
-					acc + s.outletList.reduce((l, _) => l + 1, 0),
+				(acc: number, s: ChargingStationAPIStation) => acc + s.outletList.reduce((l) => l + 1, 0),
 				0,
 			);
 			const outletCount = stations.reduce(
