@@ -79,9 +79,13 @@ describe('bitPackData', () => {
 			precedingNode: 'c9-10-150',
 		};
 
+		console.time('pack');
 		const packed = bitPackData(nodeLabel, 'cumulativeDuration');
+		console.timeEnd('pack');
+		console.time('unpack');
 
 		const unpacked = bitUnpackData(packed, 'cumulativeDuration');
+		console.timeEnd('unpack');
 		console.log({ unpacked });
 
 		expect(nodeLabel).toMatchObject(unpacked);
@@ -97,9 +101,35 @@ describe('bitPackData', () => {
 			currentNode: 'b100',
 			precedingNode: 'a100',
 		};
+		console.time('pack');
 		const packed = bitPackData(nodeLabel, 'cumulativeFinancialCost');
+		console.timeEnd('pack');
 
+		console.time('unpack');
 		const unpacked = bitUnpackData(packed, 'cumulativeFinancialCost');
+		console.timeEnd('unpack');
+		console.log({ unpacked });
+
+		expect(nodeLabel).toMatchObject(unpacked);
+	});
+
+	it('should correctly pack data with type cumulativeFinancialCost', () => {
+		const nodeLabel: NodeLabel = {
+			cumulativeDuration: 123.4,
+			cumulativeFinancialCost: 567.89,
+			cumulativePower: 321.999,
+			prevLabelIndex: 1,
+			currentLabelIndex: 2,
+			currentNode: 'c12-10-150',
+			precedingNode: 'i12',
+		};
+		console.time('pack');
+		const packed = bitPackData(nodeLabel, 'cumulativeFinancialCost');
+		console.timeEnd('pack');
+
+		console.time('unpack');
+		const unpacked = bitUnpackData(packed, 'cumulativeFinancialCost');
+		console.timeEnd('unpack');
 		console.log({ unpacked });
 
 		expect(nodeLabel).toMatchObject(unpacked);
