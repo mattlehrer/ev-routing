@@ -82,7 +82,7 @@ export function findPathInGraphWithCostFunction({
 			precedingNode: null,
 			prevLabelIndex: 0,
 			currentNode: s,
-			currentLabelIndex: Math.floor(Math.random() * 2 ** 32),
+			currentLabelIndex: Math.floor(Math.random() * 2 ** 31),
 		}),
 	);
 	let lCurrent: NodeLabel | undefined = undefined;
@@ -123,7 +123,7 @@ export function findPathInGraphWithCostFunction({
 					// chargingStops: lCurrent.chargingStops,
 					precedingNode: lCurrent.currentNode,
 					prevLabelIndex: lCurrent.currentLabelIndex,
-					currentLabelIndex: Math.floor(Math.random() * 2 ** 32),
+					currentLabelIndex: Math.floor(Math.random() * 2 ** 31),
 				};
 				const soc = initialSoC - lCurrent.cumulativePower; // in kWh
 				// lines 5: calculate the duration for this edge

@@ -6,8 +6,11 @@ describe('bitpackString', () => {
 		expect(bitpackString('s')).toEqual('00000000000000000000000000000000');
 	});
 
-	it('should convert "a" to the code for a the code for a with trailing zeros', () => {
-		expect(bitpackString('a')).toEqual('00010000000000000000000000000000');
+	it('should convert "a2" to the code for a the code for a with trailing zeros', () => {
+		expect(bitpackString('a2')).toEqual('00010000001000000000000000000000');
+	});
+	it('should convert "a0" to the code for a the code for a with trailing zeros', () => {
+		expect(bitpackString('a0')).toEqual('00010000000000000000000000000000');
 	});
 
 	it('should convert "d" to the code for d the code for d with trailing zeros', () => {
@@ -39,6 +42,12 @@ describe('unBitpackString', () => {
 	});
 	it('should unpack the string to d without a number or hyphen', () => {
 		expect(unBitpackString('01100000000000000000000000000000')).toEqual('d');
+	});
+	it('should unpack a string starting with a lowercase letter with a number and no hyphen', () => {
+		expect(unBitpackString('00010000000000000000000000000000')).toEqual('a0');
+	});
+	it('should unpack a string starting with a lowercase letter with a number and no hyphen', () => {
+		expect(unBitpackString('00010000001000000000000000000000')).toEqual('a2');
 	});
 	it('should unpack a string starting with a lowercase letter with a number and no hyphen', () => {
 		expect(unBitpackString('00110001010000000000000000000000')).toEqual('i20');

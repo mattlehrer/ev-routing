@@ -192,13 +192,11 @@ export function unBitpackString(binaryString: string): string {
 		(packed & (0b111 << (NUM_BITS + OPT_BITS + SECOND_NUM_BITS + THIRD_NUM_BITS))) >>>
 		(NUM_BITS + OPT_BITS + SECOND_NUM_BITS + THIRD_NUM_BITS);
 	let str = Letter[letterCode].toLowerCase();
-	const hasNum = !!(packed & (0b11111111 << (OPT_BITS + SECOND_NUM_BITS + THIRD_NUM_BITS)));
-	if (hasNum) {
-		const num =
-			(packed & (0b11111111 << (OPT_BITS + SECOND_NUM_BITS + THIRD_NUM_BITS))) >>>
-			(OPT_BITS + SECOND_NUM_BITS + THIRD_NUM_BITS);
-		str += num.toString();
-	}
+	if (['s', 'd'].includes(str)) return str;
+	const num =
+		(packed & (0b11111111 << (OPT_BITS + SECOND_NUM_BITS + THIRD_NUM_BITS))) >>>
+		(OPT_BITS + SECOND_NUM_BITS + THIRD_NUM_BITS);
+	str += num.toString();
 	const hasHyphen = !!(packed & (0b1 << (SECOND_NUM_BITS + THIRD_NUM_BITS)));
 	if (hasHyphen) {
 		const secondNum = (packed & (0b0111111111 << THIRD_NUM_BITS)) >>> THIRD_NUM_BITS;
