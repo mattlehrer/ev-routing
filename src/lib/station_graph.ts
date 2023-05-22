@@ -22,7 +22,7 @@ import { Heap } from 'heap-js';
 import compare from 'just-compare';
 import newGraph from 'ngraph.graph';
 import toJson from 'ngraph.tojson';
-import { uid } from 'uid';
+import { bitPackData, bitUnpackData } from './bitpacking';
 import type { ChargingStationBasic, getPricingForChargingStations } from './charging_stations';
 import {
 	calcPowerForRouteWithVehicle,
@@ -50,7 +50,6 @@ export function findPathInGraphWithCostFunction({
 	d = 'd',
 	minSoC = 0.1 * TestVehicle.battery_capacity,
 	batteryCapacity = TestVehicle.battery_capacity,
-	fastMode = false,
 }: {
 	g: Awaited<ReturnType<typeof createGraphFromRouteAndChargingStations>>;
 	type: 'cumulativeDuration' | 'cumulativeFinancialCost';
@@ -59,40 +58,45 @@ export function findPathInGraphWithCostFunction({
 	d?: string;
 	minSoC?: number;
 	batteryCapacity?: number;
-	fastMode?: boolean;
 }) {
-	const lTemp =
+	const lTemp = // opened nodes
 		type === 'cumulativeFinancialCost'
-			? new Heap<NodeLabel>(financialCostComparator)
-			: new Heap<NodeLabel>((a, b) => a[type] - b[type]); // opened nodes
-	const lPerm =
+			? new Heap<ReturnType<typeof bitPackData>>(financialCostComparator)
+			: new Heap<ReturnType<typeof bitPackData>>(durationComparator);
+	const lPerm = // closed nodes
 		type === 'cumulativeFinancialCost'
-			? new Heap<NodeLabel>(financialCostComparator)
-			: new Heap<NodeLabel>((a, b) => a[type] - b[type]); // closed nodes
+			? new Heap<ReturnType<typeof bitPackData>>(financialCostComparator)
+			: new Heap<ReturnType<typeof bitPackData>>(durationComparator);
 
 	let hasReachedDestination = false;
 
-	lTemp.add({
-		cumulativeDuration: 0,
-		cumulativeDistance: 0,
-		cumulativePower: 0,
-		cumulativeFinancialCost: 0,
-		chargingDuration: 0,
-		chargingKw: 0,
-		chargingStops: 0,
-		precedingNode: null,
-		prevLabelIndex: '',
-		currentNode: s,
-		currentLabelIndex: uid(),
-	});
+	lTemp.add(
+		bitPackData({
+			cumulativeDuration: 0,
+			// cumulativeDistance: 0,
+			cumulativePower: 0,
+			cumulativeFinancialCost: 0,
+			// chargingDuration: 0,
+			// chargingKw: 0,
+			// chargingStops: 0,
+			precedingNode: null,
+			prevLabelIndex: 0,
+			currentNode: s,
+			currentLabelIndex: Math.floor(Math.random() * 2 ** 32),
+		}),
+	);
 	let lCurrent: NodeLabel | undefined = undefined;
 
 	// line 1 from Huber 2015 Algorithm A
 	while (lTemp.size() > 0 && !hasReachedDestination) {
 		// lines 2 & 3
-		lCurrent = lTemp.pop();
+		const packedLabel = lTemp.pop();
+		if (!packedLabel) throw new Error('packedLabel is undefined');
+		lCurrent = bitUnpackData(packedLabel);
+		console.log({ lCurrent });
+
 		if (!lCurrent) throw new Error('lCurrent is undefined');
-		lPerm.add(lCurrent);
+		lPerm.add(packedLabel);
 		if (!(lPerm.size() % 1048576)) {
 			console.log(`Temp Labels: ${lTemp.size()} | Perm Labels: ${lPerm.size()}`);
 		}
@@ -111,15 +115,15 @@ export function findPathInGraphWithCostFunction({
 				const newLabel = {
 					currentNode: String(node.id),
 					cumulativeDuration: lCurrent.cumulativeDuration,
-					cumulativeDistance: lCurrent.cumulativeDistance + edge.distance,
+					// cumulativeDistance: lCurrent.cumulativeDistance + edge.distance,
 					cumulativePower: lCurrent.cumulativePower,
 					cumulativeFinancialCost: lCurrent.cumulativeFinancialCost,
-					chargingDuration: lCurrent.chargingDuration,
-					chargingKw: lCurrent.chargingKw,
-					chargingStops: lCurrent.chargingStops,
+					// chargingDuration: lCurrent.chargingDuration,
+					// chargingKw: lCurrent.chargingKw,
+					// chargingStops: lCurrent.chargingStops,
 					precedingNode: lCurrent.currentNode,
 					prevLabelIndex: lCurrent.currentLabelIndex,
-					currentLabelIndex: uid(),
+					currentLabelIndex: Math.floor(Math.random() * 2 ** 32),
 				};
 				const soc = initialSoC - lCurrent.cumulativePower; // in kWh
 				// lines 5: calculate the duration for this edge
@@ -145,9 +149,9 @@ export function findPathInGraphWithCostFunction({
 					// charge up (negative power)
 					if (edgeDuration > 0) {
 						edgePower = -1_000 * ((node.data.chargeLevel / 100) * batteryCapacity - soc);
-						newLabel.chargingDuration += edgeDuration;
-						newLabel.chargingKw += -edgePower / 1_000;
-						newLabel.chargingStops += 1;
+						// newLabel.chargingDuration += edgeDuration;
+						// newLabel.chargingKw += -edgePower / 1_000;
+						// newLabel.chargingStops += 1;
 
 						// calculate the financial cost of charging
 						newLabel.cumulativeFinancialCost =
@@ -182,25 +186,8 @@ export function findPathInGraphWithCostFunction({
 
 				// line 8
 				if (initialSoC - newLabel.cumulativePower >= minSoC) {
-					if (fastMode) {
-						// Equation box B
-						const temp = lTemp.toArray();
-						const tempMatches = temp.filter((l) => l.currentNode === newLabel.currentNode);
-						if (tempMatches.every((l) => l[type] > newLabel[type])) {
-							const permMatches = lPerm
-								.toArray()
-								.filter((l) => l.currentNode === newLabel.currentNode);
-							if (permMatches.every((l) => l[type] > newLabel[type])) {
-								// lines 10 and 11
-								const newTemp = temp.filter((l) => l.currentNode !== newLabel.currentNode);
-								lTemp.init(newTemp);
-								lTemp.add(newLabel);
-							}
-						}
-					} else {
-						// line 9
-						lTemp.add(newLabel);
-					}
+					// line 9
+					lTemp.add(bitPackData(newLabel));
 				}
 			},
 			true, // only outgoing edges
@@ -212,16 +199,17 @@ export function findPathInGraphWithCostFunction({
 	if (lCurrent?.currentNode === d) {
 		// console.log(JSON.stringify(lCurrent, null, 2));
 
-		const perm = lPerm.toArray();
-		const path = [];
+		const perm = lPerm.toArray().map(bitUnpackData);
+		// console.log({ perm: JSON.stringify(perm, null, 2) });
+		const path: NodeLabel[] = [];
 
 		path.unshift(lCurrent);
 		let current = lCurrent;
 		while (current?.precedingNode) {
 			const prev = perm.find(
-				(p) =>
-					p.currentNode === current?.precedingNode &&
-					p.currentLabelIndex === current?.prevLabelIndex,
+				(label) =>
+					label.currentNode === current?.precedingNode &&
+					label.currentLabelIndex === current?.prevLabelIndex,
 			);
 			if (!prev) throw new Error('prev is undefined');
 			path.unshift(prev);
@@ -529,7 +517,12 @@ function calculateChargingDuration({
 	);
 }
 
-function financialCostComparator(a: NodeLabel, b: NodeLabel) {
+function financialCostComparator(
+	aPacked: ReturnType<typeof bitPackData>,
+	bPacked: ReturnType<typeof bitPackData>,
+) {
+	const a = bitUnpackData(aPacked);
+	const b = bitUnpackData(bPacked);
 	if (a.cumulativeFinancialCost === b.cumulativeFinancialCost) {
 		return a.cumulativeDuration - b.cumulativeDuration;
 	} else {
@@ -537,18 +530,27 @@ function financialCostComparator(a: NodeLabel, b: NodeLabel) {
 	}
 }
 
-type NodeLabel = {
+function durationComparator(
+	aPacked: ReturnType<typeof bitPackData>,
+	bPacked: ReturnType<typeof bitPackData>,
+) {
+	const a = bitUnpackData(aPacked);
+	const b = bitUnpackData(bPacked);
+	return a.cumulativeDuration - b.cumulativeDuration;
+}
+
+export type NodeLabel = {
 	cumulativeDuration: number;
-	cumulativeDistance: number;
+	// cumulativeDistance: number;
 	cumulativePower: number;
 	cumulativeFinancialCost: number;
-	chargingDuration: number;
-	chargingKw: number;
-	chargingStops: number;
+	// chargingDuration: number;
+	// chargingKw: number;
+	// chargingStops: number;
 	precedingNode: string | null;
-	prevLabelIndex: string; // "which of the labels belonging to the preceding node is relevant for getting the currently considered label"
+	prevLabelIndex: number; // "which of the labels belonging to the preceding node is relevant for getting the currently considered label"
 	currentNode: string;
-	currentLabelIndex: string;
+	currentLabelIndex: number;
 };
 
 type NodeType =
