@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { bitpackString, unBitpackString } from './bitpacking';
+import { bitPackData, bitUnpackData, bitpackString, unBitpackString } from './bitpacking';
+import type { NodeLabel } from './station_graph';
 
 describe('bitpackString', () => {
 	it('should convert "s" to all zeroes', () => {
@@ -63,5 +64,44 @@ describe('unBitpackString', () => {
 	});
 	it('should unpack a string with a hyphen and two numbers after the first letter', () => {
 		expect(unBitpackString('01000000001010000010100010010110')).toEqual('c2-10-150');
+	});
+});
+
+describe('bitPackData', () => {
+	it('should correctly pack and unpack data with type cumulativeDuration', () => {
+		const nodeLabel: NodeLabel = {
+			cumulativeDuration: 123.4,
+			cumulativeFinancialCost: 567.89,
+			cumulativePower: 321.999,
+			prevLabelIndex: 1,
+			currentLabelIndex: 2,
+			currentNode: 'o9',
+			precedingNode: 'c9-10-150',
+		};
+
+		const packed = bitPackData(nodeLabel, 'cumulativeDuration');
+
+		const unpacked = bitUnpackData(packed, 'cumulativeDuration');
+		console.log({ unpacked });
+
+		expect(nodeLabel).toMatchObject(unpacked);
+	});
+
+	it('should correctly pack data with type cumulativeFinancialCost', () => {
+		const nodeLabel: NodeLabel = {
+			cumulativeDuration: 123.4,
+			cumulativeFinancialCost: 567.89,
+			cumulativePower: 321.999,
+			prevLabelIndex: 1,
+			currentLabelIndex: 2,
+			currentNode: 'b100',
+			precedingNode: 'a100',
+		};
+		const packed = bitPackData(nodeLabel, 'cumulativeFinancialCost');
+
+		const unpacked = bitUnpackData(packed, 'cumulativeFinancialCost');
+		console.log({ unpacked });
+
+		expect(nodeLabel).toMatchObject(unpacked);
 	});
 });

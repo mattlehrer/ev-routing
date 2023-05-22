@@ -1,26 +1,37 @@
 import type { NodeLabel } from './station_graph';
 
+const cumulativeFinancialCostBits = 20;
 const cumulativeDurationBits = 22;
 const cumulativePowerBits = 22;
-const cumulativeFinancialCostBits = 20;
 const currentNodeBits = 32;
 const currentLabelIndexBits = 32;
 const prevNodeBits = 32;
 const prevLabelIndexBits = 32;
 
-export function bitPackData(data: NodeLabel) {
+export function bitPackData(
+	data: NodeLabel,
+	type: 'cumulativeDuration' | 'cumulativeFinancialCost',
+) {
+	const cumulativeFinancialCost = Math.round(data.cumulativeFinancialCost * 100); // Scale by 100 to convert float to integer with two decimal points
 	const cumulativeDuration = Math.round(data.cumulativeDuration * 10); // Scale by 10 to convert float to integer with one decimal point
 	const cumulativePower = Math.round(data.cumulativePower * 1000); // Scale by 1000 to convert float to integer with three decimal points
-	const cumulativeFinancialCost = Math.round(data.cumulativeFinancialCost * 100); // Scale by 100 to convert float to integer with two decimal points
 	const prevLabelIndex = data.prevLabelIndex;
 	const currentLabelIndex = data.currentLabelIndex;
 	const currentNode = data.currentNode.padEnd(9, ' '); // Pad with spaces to ensure length of 9
 	const prevNode = data.precedingNode ? data.precedingNode.padEnd(9, ' ') : ''; // Pad with spaces if present, otherwise use empty string
 
-	const binaryString =
-		cumulativeDuration.toString(2).padStart(cumulativeDurationBits, '0') +
+	let binaryString = '';
+	if (type === 'cumulativeFinancialCost') {
+		binaryString +=
+			cumulativeFinancialCost.toString(2).padStart(cumulativeFinancialCostBits, '0') +
+			cumulativeDuration.toString(2).padStart(cumulativeDurationBits, '0');
+	} else if (type === 'cumulativeDuration') {
+		binaryString +=
+			cumulativeDuration.toString(2).padStart(cumulativeDurationBits, '0') +
+			cumulativeFinancialCost.toString(2).padStart(cumulativeFinancialCostBits, '0');
+	}
+	binaryString +=
 		cumulativePower.toString(2).padStart(cumulativePowerBits, '0') +
-		cumulativeFinancialCost.toString(2).padStart(cumulativeFinancialCostBits, '0') +
 		prevLabelIndex.toString(2).padStart(prevLabelIndexBits, '0') +
 		currentLabelIndex.toString(2).padStart(currentLabelIndexBits, '0') +
 		bitpackString(currentNode).padStart(currentNodeBits, '0') +
@@ -37,24 +48,30 @@ export function bitPackData(data: NodeLabel) {
 	return dataArray;
 }
 
-export function bitUnpackData(binaryData: ReturnType<typeof bitPackData>) {
+export function bitUnpackData(
+	binaryData: ReturnType<typeof bitPackData>,
+	type: 'cumulativeDuration' | 'cumulativeFinancialCost',
+) {
 	let binaryString = '';
 	for (let i = 0; i < binaryData.length; i++) {
 		binaryString += binaryData[i].toString(2).padStart(8, '0');
 	}
 
-	const cumulativeDurationBinary = binaryString.substring(0, cumulativeDurationBits);
-	const cumulativePowerBinary = binaryString.substring(
-		cumulativeDurationBits,
-		cumulativeDurationBits + cumulativePowerBits,
-	);
 	const cumulativeFinancialCostBinary = binaryString.substring(
-		cumulativeDurationBits + cumulativePowerBits,
-		cumulativeDurationBits + cumulativePowerBits + cumulativeFinancialCostBits,
+		type === 'cumulativeFinancialCost' ? 0 : cumulativeDurationBits,
+		(type === 'cumulativeFinancialCost' ? 0 : cumulativeDurationBits) + cumulativeFinancialCostBits,
+	);
+	const cumulativeDurationBinary = binaryString.substring(
+		type === 'cumulativeDuration' ? 0 : cumulativeFinancialCostBits,
+		(type === 'cumulativeDuration' ? 0 : cumulativeFinancialCostBits) + cumulativeDurationBits,
+	);
+	const cumulativePowerBinary = binaryString.substring(
+		cumulativeFinancialCostBits + cumulativeDurationBits,
+		cumulativeFinancialCostBits + cumulativeDurationBits + cumulativePowerBits,
 	);
 	const prevLabelIndexBinary = binaryString.substring(
-		cumulativeDurationBits + cumulativePowerBits + cumulativeFinancialCostBits,
-		cumulativeDurationBits + cumulativePowerBits + cumulativeFinancialCostBits + prevLabelIndexBits,
+		cumulativeFinancialCostBits + cumulativeDurationBits + cumulativePowerBits,
+		cumulativeFinancialCostBits + cumulativeDurationBits + cumulativePowerBits + prevLabelIndexBits,
 	);
 	const currentLabelIndexBinary = binaryString.substring(
 		cumulativeDurationBits + cumulativePowerBits + cumulativeFinancialCostBits + prevLabelIndexBits,
@@ -93,22 +110,22 @@ export function bitUnpackData(binaryData: ReturnType<typeof bitPackData>) {
 			prevNodeBits,
 	);
 
+	const cumulativeFinancialCost = parseInt(cumulativeFinancialCostBinary, 2) / 100; // Scale back to float with two decimal points
 	const cumulativeDuration = parseInt(cumulativeDurationBinary, 2) / 10; // Scale back to float with one decimal point
 	const cumulativePower = parseInt(cumulativePowerBinary, 2) / 1000; // Scale back to float with three decimal points
-	const cumulativeFinancialCost = parseInt(cumulativeFinancialCostBinary, 2) / 100; // Scale back to float with two decimal points
 	const prevLabelIndex = parseInt(prevLabelIndexBinary, 2);
 	const currentLabelIndex = parseInt(currentLabelIndexBinary, 2);
 	const currentNode = unBitpackString(currentNodeBinary).trim(); // Remove trailing spaces
 	const precedingNode = unBitpackString(prevNodeBinary).trim(); // Remove trailing spaces
 
 	return {
+		cumulativeFinancialCost,
 		cumulativeDuration,
 		cumulativePower,
-		cumulativeFinancialCost,
-		prevLabelIndex,
 		currentLabelIndex,
 		currentNode,
 		precedingNode: currentNode === 's' && precedingNode === 's' ? null : precedingNode,
+		prevLabelIndex,
 	};
 }
 
