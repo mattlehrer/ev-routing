@@ -2,7 +2,7 @@ import { CHARGING_STATION_API_BASE_URL, CHARGING_STATION_API_SITE_URL } from '$e
 import { error } from '@sveltejs/kit';
 import type { LatLonPair } from './lat_lon';
 import { placeData } from './place_data';
-import { printProgress } from './utils/progress';
+// import { printProgress } from './utils/progress';
 
 export async function getChargingStationsAlongRoute({
 	origin,
@@ -71,15 +71,15 @@ export async function getChargingStationsAlongRoute({
 
 export async function getPricingForChargingStations(stations: Array<ChargingStationBasic>) {
 	console.log(`getting data for ${stations.length} stations`);
-	printProgress(0);
-	let progressCount = 0;
+	// printProgress(0);
+	// let progressCount = 0;
 
 	const stationSlugs = stations.map((station) => station.slug);
 
 	const stationData: ChargingStationAPIStation[] = [];
 	const statusData: ChargingStationAPIStationStatus[] = [];
 	for (const slug of stationSlugs) {
-		progressCount++;
+		// progressCount++;
 
 		const resStation = await fetch(
 			`${CHARGING_STATION_API_BASE_URL}/station/${slug}`,
@@ -122,7 +122,7 @@ export async function getPricingForChargingStations(stations: Array<ChargingStat
 			console.error(error);
 		}
 
-		printProgress((progressCount / stationSlugs.length) * 100);
+		// printProgress((progressCount / stationSlugs.length) * 100);
 
 		// Wait for 2 seconds before making the next request
 		await new Promise((resolve) => setTimeout(resolve, randomWait()));
