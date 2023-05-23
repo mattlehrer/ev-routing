@@ -57,11 +57,13 @@ export const load = (async ({ url }) => {
 		});
 
 		console.log('creating graph');
-		const minimumCapacity = 22;
+		const minimumCapacity = 43;
+		const chargeLevelInterval = 50;
 		const g = await createGraphFromRouteAndChargingStations({
 			intersections: convertRouteFromStepsToIntersections(route),
 			stations: chargingStations.stations,
 			minimumCapacity,
+			chargeLevelInterval,
 		});
 
 		const stations: ChargingStationAPIStation[] =
