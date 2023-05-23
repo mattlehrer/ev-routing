@@ -85,6 +85,15 @@ export async function getPricingForChargingStations(stations: Array<ChargingStat
 			`${CHARGING_STATION_API_BASE_URL}/station/${slug}`,
 			chargingStationAPIFetchOptions,
 		);
+		if (!resStation.ok) {
+			await new Promise((resolve) => setTimeout(resolve, 30_000));
+			const retry = await fetch(
+				`${CHARGING_STATION_API_BASE_URL}/station/${slug}`,
+				chargingStationAPIFetchOptions,
+			);
+			if (!retry.ok) throw new Error('failed to fetch station data');
+			stationData.push(await retry.json());
+		}
 		try {
 			stationData.push(await resStation.json());
 		} catch (error) {
@@ -98,6 +107,15 @@ export async function getPricingForChargingStations(stations: Array<ChargingStat
 			`${CHARGING_STATION_API_BASE_URL}/status/${slug}`,
 			chargingStationAPIFetchOptions,
 		);
+		if (!resStation.ok) {
+			await new Promise((resolve) => setTimeout(resolve, 30_000));
+			const retry = await fetch(
+				`${CHARGING_STATION_API_BASE_URL}/status/${slug}`,
+				chargingStationAPIFetchOptions,
+			);
+			if (!retry.ok) throw new Error('failed to fetch status data');
+			stationData.push(await retry.json());
+		}
 		try {
 			statusData.push(await resStatus.json());
 		} catch (error) {
