@@ -314,7 +314,7 @@ export const actions = {
 			// 	[destination.longitude, destination.latitude],
 			// 	{ units: 'kilometers' },
 			// );
-			await myQueue.add('route', { origin, destination });
+			await myQueue.add('route', { origin, destination }, { attempts: 1 });
 		}
 
 		return { success: true };
