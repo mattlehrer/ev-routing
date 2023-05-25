@@ -217,14 +217,16 @@ const chargingStationAPIFetchOptions = {
 		origin: CHARGING_STATION_API_SITE_URL,
 		pragma: 'no-cache',
 		referer: `${CHARGING_STATION_API_SITE_URL}/`,
-		'sec-ch-ua': '"Chromium";v="113", "Not-A.Brand";v="24"',
-		'sec-ch-ua-mobile': '?0',
-		'sec-ch-ua-platform': ' "macOS"',
+		// 'sec-ch-ua': '"Chromium";v="113", "Not-A.Brand";v="24"',
+		// 'sec-ch-ua-mobile': '?0',
+		// 'sec-ch-ua-platform': ' "macOS"',
 		'sec-fetch-dest': 'empty',
 		'sec-fetch-mode': 'cors',
 		'sec-fetch-site': 'same-site',
 		'user-agent':
-			'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36',
+			'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.5 Safari/605.1.15',
+		// 'user-agent':
+		// 	'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/113.0.0.0 Safari/537.36',
 	},
 };
 
