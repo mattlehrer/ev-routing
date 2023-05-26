@@ -17,13 +17,15 @@ import { TestVehicle } from '$lib/vehicles/TestVehicle';
 import { fail } from '@sveltejs/kit';
 import { isNumber } from '@turf/helpers';
 import Database from 'better-sqlite3';
-import { Job, Queue, Worker } from 'bullmq';
+import { Queue, Worker, type Job } from 'bullmq';
 import { uid } from 'uid';
 import type { Actions } from './$types';
 
-const db = new Database('results.db', { verbose: console.log });
-db.pragma('journal_mode = WAL');
-db.exec(`
+let db: Database.Database | undefined = undefined;
+if (!building) {
+	db = new Database('results.db', { verbose: console.log });
+	db.pragma('journal_mode = WAL');
+	db.exec(`
 CREATE TABLE IF NOT EXISTS routes (
 	id TEXT PRIMARY KEY,
   startTime DATETIME,
@@ -45,23 +47,7 @@ CREATE TABLE IF NOT EXISTS routes (
 	error BLOB
 );
 `);
-const init = db.prepare(
-	`INSERT INTO routes (id, startTime, origin, destination, route, totalPower) VALUES (?, ?, ?, ?, ?, ?)`,
-);
-
-const addStations = db.prepare(`UPDATE routes set chargingStations = ? WHERE id = ?`);
-// const addGraph = db.prepare(`UPDATE routes set graph = ? WHERE id = ?`);
-const addGraphSettings = db.prepare(
-	`UPDATE routes set minimumCapacity = ?, chargeLevelInterval = ? WHERE id = ?`,
-);
-const addFinancialCostData = db.prepare(
-	`UPDATE routes set financialCostPath = ?, optimizedCost = ?, optimizedCostDuration = ? WHERE id = ?`,
-);
-const addDurationData = db.prepare(
-	`UPDATE routes set durationPath = ?, optimizedDuration = ?, optimizedDurationFinancialCost = ? WHERE id = ?`,
-);
-const addEndTime = db.prepare(`UPDATE routes set endTime = ? WHERE id = ?`);
-const addError = db.prepare(`UPDATE routes set error = ? WHERE id = ?`);
+}
 
 const connection = {
 	host: 'localhost',
@@ -104,6 +90,27 @@ const worker = new Worker<{
 	'routes',
 	async (job: Job) => {
 		if (building) return;
+
+		if (!db) throw new Error('db not defined');
+
+		const init = db.prepare(
+			`INSERT INTO routes (id, startTime, origin, destination, route, totalPower) VALUES (?, ?, ?, ?, ?, ?)`,
+		);
+
+		const addStations = db.prepare(`UPDATE routes set chargingStations = ? WHERE id = ?`);
+		// const addGraph = db.prepare(`UPDATE routes set graph = ? WHERE id = ?`);
+		const addGraphSettings = db.prepare(
+			`UPDATE routes set minimumCapacity = ?, chargeLevelInterval = ? WHERE id = ?`,
+		);
+		const addFinancialCostData = db.prepare(
+			`UPDATE routes set financialCostPath = ?, optimizedCost = ?, optimizedCostDuration = ? WHERE id = ?`,
+		);
+		const addDurationData = db.prepare(
+			`UPDATE routes set durationPath = ?, optimizedDuration = ?, optimizedDurationFinancialCost = ? WHERE id = ?`,
+		);
+		const addEndTime = db.prepare(`UPDATE routes set endTime = ? WHERE id = ?`);
+		const addError = db.prepare(`UPDATE routes set error = ? WHERE id = ?`);
+
 		const jobId = uid();
 		console.log(`worker running ${jobId}`);
 
