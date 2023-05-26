@@ -265,7 +265,7 @@ const worker = new Worker<{
 			console.log({ info });
 		}
 	},
-	{ connection },
+	{ connection, skipStalledCheck: true },
 );
 
 worker.on(
