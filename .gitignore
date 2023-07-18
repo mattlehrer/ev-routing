@@ -11,3 +11,4 @@ vite.config.ts.timestamp-*
 sweden-latest.osm.pbf
 results.db*
 /osrmdata/**/*
+combined.db
