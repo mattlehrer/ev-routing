@@ -2,7 +2,7 @@ import Database from 'better-sqlite3';
 import type { PageServerLoad } from './$types';
 const db = new Database('combined.db', { readonly: true });
 const routeSelect = db.prepare(
-	'SELECT id, origin, destination, route, totalPower, optimizedDuration FROM routes',
+	'SELECT id, origin, destination, route, totalPower, optimizedCost, optimizedCostDuration, optimizedDurationFinancialCost, optimizedDuration FROM routes',
 );
 let routes = routeSelect
 	.all()
@@ -14,6 +14,9 @@ let routes = routeSelect
 			origin: JSON.parse(r.origin),
 			destination: JSON.parse(r.destination),
 			totalPower: JSON.parse(r.totalPower),
+			optimizedCost: JSON.parse(r.optimizedCost),
+			optimizedCostDuration: JSON.parse(r.optimizedCostDuration),
+			optimizedDurationFinancialCost: JSON.parse(r.optimizedDurationFinancialCost),
 			optimizedDuration: JSON.parse(r.optimizedDuration),
 		};
 	});
