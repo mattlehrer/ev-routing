@@ -25,6 +25,7 @@
 
 	let leafletMap: { getMap(): Map };
 	let L: Map;
+	const hovered: { [key: string]: boolean } = {};
 
 	onMount(() => {
 		L = leafletMap.getMap();
@@ -44,16 +45,30 @@
 				<TileLayer url={tileUrl} options={tileLayerOptions} />
 
 				{#each data.routes as run}
-					<!-- <Marker latLng={[run.origin.latitude, run.origin.longitude]}>
-						<DivIcon options={{ html: originIcon }} />
-					</Marker>
-					<Marker latLng={[run.destination.latitude, run.destination.longitude]}>
-						<DivIcon options={{ html: destinationIcon }} />
-					</Marker> -->
-					<Polyline
-						latLngs={run.route.geometry.coordinates}
-						color={run.optimizedDuration ? '#3d3' : '#d33'}
-					/>
+					{#if hovered[run.id]}
+						<Marker latLng={[run.origin.latitude, run.origin.longitude]}>
+							<DivIcon options={{ html: originIcon }} />
+						</Marker>
+						<Marker latLng={[run.destination.latitude, run.destination.longitude]}>
+							<DivIcon options={{ html: destinationIcon }} />
+						</Marker>
+					{/if}
+					<!-- <Polyline latLngs={run.route.geometry.coordinates} color="#d33" opacity={0.5} /> -->
+					<div class={hovered[run.id] ? 'z-[1000]' : ''}>
+						<Polyline
+							latLngs={run.route.geometry.coordinates}
+							color={run.optimizedDuration ? '#3d3' : '#d33'}
+							opacity={hovered[run.id] ? 1 : 0.25}
+							weight={hovered[run.id] ? 5 : 3}
+							events={['mouseout', 'mouseover']}
+							on:mouseout={() => {
+								hovered[run.id] = false;
+							}}
+							on:mouseover={() => {
+								hovered[run.id] = true;
+							}}
+						/>
+					</div>
 				{/each}
 			</LeafletMap>
 		{/if}
