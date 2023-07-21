@@ -1,27 +1,17 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import { browser } from '$app/environment';
-	import {
-		GeoJSON,
-		LeafletMap,
-		Marker,
-		DivIcon,
-		TileLayer,
-		Polyline,
-		Popup,
-	} from 'svelte-leafletjs?client';
-	import { LatLng } from 'leaflet?client';
+	import { LeafletMap, Marker, DivIcon, TileLayer, Polyline } from 'svelte-leafletjs?client';
 	import type { Map } from 'leaflet?client';
 	import 'leaflet/dist/leaflet.css';
 	import { onMount } from 'svelte';
-	import { pinIcon } from '$lib/assets/pin';
 	import { mapOptions, tileLayerOptions, tileUrl } from '$lib/map';
+	import { downRightIcon, upRightIcon } from '$lib/assets/results_icons';
 
-	const originIcon = pinIcon('text-green-700');
-	const destinationIcon = pinIcon('text-red-700');
+	const originIcon = upRightIcon('text-green-700');
+	const destinationIcon = downRightIcon('text-red-700');
 
 	export let data: PageData;
-	let ready = false;
 	let showOrigins = false;
 	let showDestinations = false;
 	let showRoutes = false;
@@ -37,7 +27,6 @@
 		if (data) {
 			console.log({ data });
 		}
-		ready = true;
 	});
 </script>
 
@@ -49,17 +38,35 @@
 
 				{#each data.routes as run}
 					{#if hovered[run.id] || showOrigins}
-						<Marker latLng={[run.origin.latitude, run.origin.longitude]}>
+						<Marker
+							latLng={[run.origin.latitude, run.origin.longitude]}
+							events={['mouseout', 'mouseover']}
+							on:mouseout={() => {
+								hovered[run.id] = false;
+							}}
+							on:mouseover={() => {
+								hovered[run.id] = true;
+							}}
+						>
 							<DivIcon options={{ html: originIcon }} />
 						</Marker>
 					{/if}
 					{#if hovered[run.id] || showDestinations}
-						<Marker latLng={[run.destination.latitude, run.destination.longitude]}>
+						<Marker
+							latLng={[run.destination.latitude, run.destination.longitude]}
+							events={['mouseout', 'mouseover']}
+							on:mouseout={() => {
+								hovered[run.id] = false;
+							}}
+							on:mouseover={() => {
+								hovered[run.id] = true;
+							}}
+						>
 							<DivIcon options={{ html: destinationIcon }} />
 						</Marker>
 					{/if}
 					<!-- <Polyline latLngs={run.route.geometry.coordinates} color="#d33" opacity={0.5} /> -->
-					{#if showRoutes}
+					{#if hovered[run.id] || showRoutes}
 						<div class={hovered[run.id] ? 'z-[1000]' : ''}>
 							<Polyline
 								latLngs={run.route.geometry.coordinates}
