@@ -1,6 +1,7 @@
 <script lang="ts">
 	import type { PageData } from './$types';
 	import { browser } from '$app/environment';
+	import { fade } from 'svelte/transition';
 	import { LeafletMap, Marker, DivIcon, TileLayer, Polyline } from 'svelte-leafletjs?client';
 	import type { Map } from 'leaflet?client';
 	import 'leaflet/dist/leaflet.css';
@@ -16,7 +17,7 @@
 	let showDestinations = false;
 	let showRoutes = false;
 	let successType: 'both' | 'completed' | 'overflow' = 'both';
-	let routes: typeof data.routes = data.routes;
+	$: routes = filterRoutes(successType);
 
 	let leafletMap: { getMap(): Map };
 	let L: Map;
@@ -31,22 +32,16 @@
 		}
 	});
 
-	$: if (successType) {
-		switch (successType) {
+	function filterRoutes(type: typeof successType): PageData['routes'] {
+		switch (type) {
 			case 'both': {
-				routes = data.routes;
-				break;
+				return data.routes;
 			}
 			case 'completed': {
-				routes = data.routes.filter((r) => r.optimizedDuration);
-				break;
+				return data.routes.filter((r) => r.optimizedDuration);
 			}
 			case 'overflow': {
-				routes = data.routes.filter((r) => !r.optimizedDuration);
-				break;
-			}
-			default: {
-				throw new Error(`Unknown success type: ${successType}`);
+				return data.routes.filter((r) => !r.optimizedDuration);
 			}
 		}
 	}
@@ -225,5 +220,9 @@
 <style>
 	main :global(.leaflet-div-icon) {
 		@apply border-transparent bg-transparent;
+	}
+	main :global(img.leaflet-marker-icon),
+	main :global(.leaflet-shadow-pane img) {
+		display: none;
 	}
 </style>
