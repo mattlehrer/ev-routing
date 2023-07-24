@@ -5,7 +5,7 @@
 	import { LeafletMap, Marker, DivIcon, TileLayer, Polyline } from 'svelte-leafletjs?client';
 	import type { Map } from 'leaflet?client';
 	import 'leaflet/dist/leaflet.css';
-	import { onMount } from 'svelte';
+	import { onMount, tick } from 'svelte';
 	import { mapOptions, tileLayerOptions, tileUrl } from '$lib/map';
 	import { downRightIcon, upRightIcon } from '$lib/assets/results_icons';
 
@@ -17,7 +17,10 @@
 	let showDestinations = false;
 	let showRoutes = false;
 	let successType: 'both' | 'completed' | 'overflow' = 'both';
-	$: routes = filterRoutes(successType);
+	// $: routes = filterRoutes(successType);
+	let routes = data.routes;
+
+	$: filterRoutes(successType);
 
 	let leafletMap: { getMap(): Map };
 	let L: Map;
@@ -32,16 +35,21 @@
 		}
 	});
 
-	function filterRoutes(type: typeof successType): PageData['routes'] {
+	async function filterRoutes(type: typeof successType): Promise<void> {
+		routes = [];
+		await tick();
 		switch (type) {
 			case 'both': {
-				return data.routes;
+				routes = data.routes;
+				break;
 			}
 			case 'completed': {
-				return data.routes.filter((r) => r.optimizedDuration);
+				routes = data.routes.filter((r) => r.optimizedDuration);
+				break;
 			}
 			case 'overflow': {
-				return data.routes.filter((r) => !r.optimizedDuration);
+				routes = data.routes.filter((r) => !r.optimizedDuration);
+				break;
 			}
 		}
 	}
@@ -54,7 +62,7 @@
 				<TileLayer url={tileUrl} options={tileLayerOptions} />
 
 				{#each routes as run (run.id)}
-					{#if hovered[run.id] || showOrigins}
+					{#if showOrigins || hovered[run.id]}
 						<Marker
 							latLng={[run.origin.latitude, run.origin.longitude]}
 							events={['mouseout', 'mouseover']}
@@ -68,7 +76,7 @@
 							<DivIcon options={{ html: originIcon }} />
 						</Marker>
 					{/if}
-					{#if hovered[run.id] || showDestinations}
+					{#if showDestinations || hovered[run.id]}
 						<Marker
 							latLng={[run.destination.latitude, run.destination.longitude]}
 							events={['mouseout', 'mouseover']}
@@ -83,7 +91,7 @@
 						</Marker>
 					{/if}
 					<!-- <Polyline latLngs={run.route.geometry.coordinates} color="#d33" opacity={0.5} /> -->
-					{#if hovered[run.id] || showRoutes}
+					{#if showRoutes || hovered[run.id]}
 						<div class={hovered[run.id] ? 'z-[1000]' : ''}>
 							<Polyline
 								latLngs={run.route.geometry.coordinates}
