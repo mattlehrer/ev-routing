@@ -32,6 +32,16 @@ export function formatPower(wH: number) {
 	);
 }
 
+export function formatPowerKwH(wH: number) {
+	return (
+		new Intl.NumberFormat(undefined, {
+			style: 'decimal',
+			unitDisplay: 'short',
+			maximumFractionDigits: 1,
+		}).format(wH / 1000) + ' kWh'
+	);
+}
+
 export function formatStationInfo(station: ChargingStationAPIRouteResponse['stations'][number]) {
 	return `${station.title}\nFastest charger is ${station.maxCapacity} kW`;
 }

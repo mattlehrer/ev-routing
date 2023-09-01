@@ -1,20 +1,6 @@
-import {
-	getChargingStationsAlongRoute,
-	type ChargingStationAPIRouteResponse,
-	type ChargingStationAPIStation,
-} from '$lib/charging_stations';
+import { type ChargingStationAPIRouteResponse } from '$lib/charging_stations';
 import type { LatLonPair } from '$lib/lat_lon';
-import {
-	calcPowerForRouteWithVehicle,
-	convertRouteFromStepsToIntersections,
-	getRoute,
-	type Route,
-} from '$lib/route';
-import {
-	createGraphFromRouteAndChargingStations,
-	findPathInGraphWithCostFunction,
-} from '$lib/station_graph';
-import { TestVehicle } from '$lib/vehicles/TestVehicle';
+import { calcPowerForRouteWithVehicle, getRoute, type Route } from '$lib/route';
 import { error } from '@sveltejs/kit';
 import type { Actions, PageServerLoad } from './$types';
 
@@ -50,54 +36,54 @@ export const load = (async ({ url }) => {
 	let chargingStations: ChargingStationAPIRouteResponse | undefined = undefined;
 	if (route && origin && destination) {
 		console.log('getting charging station data');
-		chargingStations = await getChargingStationsAlongRoute({
-			origin,
-			destination,
-			getPricing: true,
-		});
+		// chargingStations = await getChargingStationsAlongRoute({
+		// 	origin,
+		// 	destination,
+		// 	getPricing: true,
+		// });
 
-		console.log('creating graph');
-		const minimumCapacity = 43;
-		const chargeLevelInterval = 50;
-		const g = await createGraphFromRouteAndChargingStations({
-			intersections: convertRouteFromStepsToIntersections(route),
-			stations: chargingStations.stations,
-			minimumCapacity,
-			chargeLevelInterval,
-		});
+		// console.log('creating graph');
+		// const minimumCapacity = 43;
+		// const chargeLevelInterval = 50;
+		// const g = await createGraphFromRouteAndChargingStations({
+		// 	intersections: convertRouteFromStepsToIntersections(route),
+		// 	stations: chargingStations.stations,
+		// 	minimumCapacity,
+		// 	chargeLevelInterval,
+		// });
 
-		const stations: ChargingStationAPIStation[] =
-			chargingStations.stations as unknown as ChargingStationAPIStation[];
+		// const stations: ChargingStationAPIStation[] =
+		// 	chargingStations.stations as unknown as ChargingStationAPIStation[];
 
-		const nodeCount = g.getNodesCount();
-		const edgeCount = g.getLinksCount();
-		const originalOutletCount = stations.reduce(
-			(acc: number, s: ChargingStationAPIStation) => acc + s.outletList.reduce((l, _) => l + 1, 0),
-			0,
-		);
-		const outletCount = stations.reduce(
-			(acc: number, s: ChargingStationAPIStation) =>
-				acc +
-				s.outletList.reduce(
-					(l, o) => l + (o.capacity >= minimumCapacity && (o.costKwh || o.costMin) ? 1 : 0),
-					0,
-				),
-			0,
-		);
+		// const nodeCount = g.getNodesCount();
+		// const edgeCount = g.getLinksCount();
+		// const originalOutletCount = stations.reduce(
+		// 	(acc: number, s: ChargingStationAPIStation) => acc + s.outletList.reduce((l, _) => l + 1, 0),
+		// 	0,
+		// );
+		// const outletCount = stations.reduce(
+		// 	(acc: number, s: ChargingStationAPIStation) =>
+		// 		acc +
+		// 		s.outletList.reduce(
+		// 			(l, o) => l + (o.capacity >= minimumCapacity && (o.costKwh || o.costMin) ? 1 : 0),
+		// 			0,
+		// 		),
+		// 	0,
+		// );
 
-		console.log(
-			`graph has ${nodeCount} nodes, ${edgeCount} edges, and ${outletCount} outlets from ${originalOutletCount} original outlets`,
-		);
+		// console.log(
+		// 	`graph has ${nodeCount} nodes, ${edgeCount} edges, and ${outletCount} outlets from ${originalOutletCount} original outlets`,
+		// );
 
-		const t = 'cumulativeFinancialCost';
-		console.log(`finding ${t} path`);
-		console.time(`path for ${t}`);
-		const path = findPathInGraphWithCostFunction({
-			g,
-			type: t,
-			initialSoC: TestVehicle.battery_capacity * 0.95,
-		});
-		console.timeEnd(`path for ${t}`);
+		// const t = 'cumulativeFinancialCost';
+		// console.log(`finding ${t} path`);
+		// console.time(`path for ${t}`);
+		// const path = findPathInGraphWithCostFunction({
+		// 	g,
+		// 	type: t,
+		// 	initialSoC: TestVehicle.battery_capacity * 0.95,
+		// });
+		// console.timeEnd(`path for ${t}`);
 	}
 
 	return {

@@ -8,6 +8,7 @@
 	import { onMount, tick } from 'svelte';
 	import { mapOptions, tileLayerOptions, tileUrl } from '$lib/map';
 	import { downRightIcon, upRightIcon } from '$lib/assets/results_icons';
+	import { formatDistance, formatPowerKwH } from '$lib/utils/formatters';
 
 	const originIcon = upRightIcon('text-green-700');
 	const destinationIcon = downRightIcon('text-red-700');
@@ -15,9 +16,8 @@
 	export let data: PageData;
 	let showOrigins = false;
 	let showDestinations = false;
-	let showRoutes = false;
+	let showRoutes = true;
 	let successType: 'both' | 'completed' | 'overflow' = 'both';
-	// $: routes = filterRoutes(successType);
 	let routes = data.routes;
 
 	$: filterRoutes(successType);
@@ -25,6 +25,15 @@
 	let leafletMap: { getMap(): Map };
 	let L: Map;
 	const hovered: { [key: string]: boolean } = {};
+	const highlighted: {
+		lineGeometry: any;
+		distance?: string;
+		totalPower?: string;
+		optimizedCost?: number;
+		optimizedCostDuration?: number;
+		optimizedDurationFinancialCost?: number;
+		optimizedDuration?: number;
+	} = { lineGeometry: undefined };
 
 	onMount(() => {
 		L = leafletMap.getMap();
@@ -33,6 +42,28 @@
 		if (data) {
 			console.log({ data });
 		}
+
+		const completedRoutes = data.routes.filter((r) => r.optimizedDuration);
+		let i = 0;
+		const max = completedRoutes.length - 1;
+		const interval = setInterval(() => {
+			highlighted.lineGeometry = completedRoutes[i % max].route.geometry.coordinates;
+			highlighted.distance = (completedRoutes[i % max].route.distance / 1000).toFixed(1);
+			highlighted.totalPower = (completedRoutes[i % max].totalPower / 1000).toFixed(1);
+			highlighted.optimizedCost = completedRoutes[i % max].optimizedCost;
+			highlighted.optimizedCostDuration = completedRoutes[i % max].optimizedCostDuration;
+			highlighted.optimizedDurationFinancialCost =
+				completedRoutes[i % max].optimizedDurationFinancialCost;
+			highlighted.optimizedDuration = completedRoutes[i % max].optimizedDuration;
+
+			hovered[completedRoutes[(i - 1) % max]?.id] = false;
+			hovered[completedRoutes[i % max].id] = true;
+			i++;
+		}, 500);
+
+		return () => {
+			clearInterval(interval);
+		};
 	});
 
 	async function filterRoutes(type: typeof successType): Promise<void> {
@@ -90,10 +121,16 @@
 							<DivIcon options={{ html: destinationIcon }} />
 						</Marker>
 					{/if}
-					<!-- <Polyline latLngs={run.route.geometry.coordinates} color="#d33" opacity={0.5} /> -->
 					{#if showRoutes || hovered[run.id]}
-						<div class={hovered[run.id] ? 'z-[1000]' : ''}>
+						<div>
 							<Polyline
+								latLngs={run.route.geometry.coordinates}
+								color="#999"
+								opacity="1"
+								weight="1"
+							/>
+							<!-- green for completed and red for heap overflows with hover
+								<Polyline
 								latLngs={run.route.geometry.coordinates}
 								color={run.optimizedDuration ? '#3d3' : '#d33'}
 								opacity={hovered[run.id] ? 1 : 0.25}
@@ -105,123 +142,74 @@
 								on:mouseover={() => {
 									hovered[run.id] = true;
 								}}
-							/>
+							/> -->
 						</div>
 					{/if}
 				{/each}
+				{#if highlighted?.lineGeometry}
+					<div>
+						<Polyline latLngs={highlighted.lineGeometry} color="#3366ff" opacity="1" weight="4" />
+					</div>
+				{/if}
 			</LeafletMap>
 		{/if}
 	</div>
 
-	<div id="filters" class="absolute left-0 top-0 z-10 w-64 p-3">
-		<div class="isolate -space-y-px rounded-md">
-			<form class="relative rounded-md bg-white p-3">
-				<fieldset>
-					<div class="space-y-5">
-						<div class="relative flex items-start">
-							<div class="flex h-6 items-center">
-								<input
-									id="comments"
-									aria-describedby="comments-description"
-									name="comments"
-									type="checkbox"
-									bind:checked={showOrigins}
-									class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
-								/>
-							</div>
-							<div class="ml-3 text-sm leading-6">
-								<label for="comments" class="font-medium text-gray-900">Show Origins</label>
-							</div>
-						</div>
-						<div class="relative flex items-start">
-							<div class="flex h-6 items-center">
-								<input
-									id="candidates"
-									aria-describedby="candidates-description"
-									name="candidates"
-									type="checkbox"
-									bind:checked={showDestinations}
-									class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
-								/>
-							</div>
-							<div class="ml-3 text-sm leading-6">
-								<label for="candidates" class="font-medium text-gray-900">Show Destinations</label>
-							</div>
-						</div>
-						<div class="relative flex items-start">
-							<div class="flex h-6 items-center">
-								<input
-									id="offers"
-									aria-describedby="offers-description"
-									name="offers"
-									type="checkbox"
-									bind:checked={showRoutes}
-									class="h-4 w-4 rounded border-gray-300 text-indigo-600 focus:ring-indigo-600"
-								/>
-							</div>
-							<div class="ml-3 text-sm leading-6">
-								<label for="offers" class="font-medium text-gray-900">Show Routes</label>
-							</div>
-						</div>
-						<div>
-							<label class="text-base font-semibold text-gray-900" for="route-success"
-								>Route Success</label
-							>
-							<!-- <p class="text-sm text-gray-500">How do you prefer to receive notifications?</p> -->
-							<fieldset class="mt-4">
-								<legend class="sr-only">Route Success</legend>
-								<div class="space-y-4">
-									<div class="flex items-center">
-										<input
-											id="completed"
-											name="route-success"
-											type="radio"
-											bind:group={successType}
-											value={'completed'}
-											class="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-600"
-										/>
-										<label
-											for="completed"
-											class="ml-3 block text-sm font-medium leading-6 text-gray-900"
-											>Completed ({data.routes.filter((r) => r.optimizedDuration).length})</label
-										>
-									</div>
-									<div class="flex items-center">
-										<input
-											id="heap-overflow"
-											name="route-success"
-											type="radio"
-											bind:group={successType}
-											value={'overflow'}
-											class="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-600"
-										/>
-										<label
-											for="heap-overflow"
-											class="ml-3 block text-sm font-medium leading-6 text-gray-900"
-											>Heap Overflow ({data.routes.filter((r) => !r.optimizedDuration)
-												.length})</label
-										>
-									</div>
-									<div class="flex items-center">
-										<input
-											id="both"
-											name="route-success"
-											type="radio"
-											bind:group={successType}
-											value={'both'}
-											class="h-4 w-4 border-gray-300 text-indigo-600 focus:ring-indigo-600"
-										/>
-										<label for="both" class="ml-3 block text-sm font-medium leading-6 text-gray-900"
-											>Both ({data.routes.length})</label
-										>
-									</div>
-								</div>
-							</fieldset>
-						</div>
-					</div>
-				</fieldset>
-			</form>
-		</div>
+	<div
+		class="absolute bottom-[12%] right-[12%] w-[21rem] rounded-lg border border-gray-800 bg-white p-4 opacity-70"
+	>
+		<table class="w-full">
+			<tr>
+				<th scope="row">Distance </th>
+				<td class="ml-4 text-right">{highlighted.distance}</td>
+				<td class="w-10 pl-1 text-left font-light">km</td>
+			</tr>
+			<tr>
+				<th scope="row">Base Route Power</th>
+				<td class="ml-4 text-right">{highlighted.totalPower}</td>
+				<td class="w-10 pl-1 text-left font-light">kWh</td>
+			</tr>
+			<tr>
+				<th scope="row">Optimized Cost</th>
+				<td class="ml-4 text-right">{highlighted.optimizedCost?.toFixed(2)}</td>
+				<td class="w-10 pl-1 text-left font-light">SEK</td>
+			</tr>
+			<tr>
+				<th scope="row">Fastest Route Cost</th>
+				<td class="ml-4 text-right">{highlighted.optimizedDurationFinancialCost?.toFixed(2)}</td>
+				<td class="w-10 pl-1 text-left font-light">SEK</td>
+			</tr>
+			<tr>
+				<th scope="row">Savings (%)</th>
+				<td class="ml-4 text-right"
+					>{highlighted.optimizedDurationFinancialCost
+						? (
+								(100 * (highlighted.optimizedDurationFinancialCost - highlighted.optimizedCost)) /
+								highlighted.optimizedDurationFinancialCost
+						  ).toFixed(1)
+						: 0}</td
+				>
+				<td class="w-10 pl-1 text-left font-light">%</td>
+			</tr>
+			<tr>
+				<th scope="row">Savings (per hour)</th>
+				<td class="ml-4 text-right"
+					>{highlighted.optimizedDurationFinancialCost !== undefined &&
+					highlighted.optimizedCost !== undefined &&
+					highlighted.optimizedCostDuration !== undefined &&
+					highlighted.optimizedDuration !== undefined &&
+					highlighted.optimizedDurationFinancialCost - highlighted.optimizedCost > 0
+						? (
+								(3600 * (highlighted.optimizedDurationFinancialCost - highlighted.optimizedCost)) /
+								(highlighted.optimizedCostDuration - highlighted.optimizedDuration)
+						  ).toFixed(1)
+						: 0}</td
+				>
+				<td class="w-10 pl-1 text-left font-light">SEK/hour</td>
+			</tr>
+		</table>
+		<!-- optimizedCostDuration = {highlighted.optimizedCostDuration?.toFixed(2)} -->
+		<!-- optimizedDuration = {highlighted.optimizedDuration?.toFixed(2)} -->
 	</div>
 </main>
 
@@ -232,5 +220,13 @@
 	main :global(img.leaflet-marker-icon),
 	main :global(.leaflet-shadow-pane img) {
 		display: none;
+	}
+
+	th {
+		text-align: left;
+		font-weight: inherit;
+	}
+	tr {
+		font-variant-numeric: tabular-nums;
 	}
 </style>
